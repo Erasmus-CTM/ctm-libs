@@ -1,5 +1,35 @@
 # Opaque-frame MathJax worker adaptor (activation gated)
 
+## Optional CORS transport for static hosts
+
+A linked pre-loader can explicitly select
+`data-ctm-mathjax-transport="cors"`. This mode is for opaque boards on static
+hosts that provide `Access-Control-Allow-Origin: *` but cannot provide CORP.
+It preserves the original asynchronous MathJax entry script and load event.
+Without this attribute, the existing transport is unchanged.
+
+The optional mode CORS-fetches the original speech worker with credentials
+omitted and imports its unchanged source through a data URL. The original
+absolute maps URL and SRE message protocol remain unchanged. An HTTP or network
+failure rejects worker creation before a Worker is created. MathJax's own
+startup failure reporting remains a separate upstream concern; consumers must
+retain bounded loading/error UI rather than assume every failure rejects its
+startup promise.
+
+If no authored `loader.require` exists, this mode uses MathJax's supported
+loader hook to insert anonymous-CORS scripts for dynamic extensions and fonts.
+Existing custom loaders, authored startup functions/adaptors, and ordinary
+origins retain ownership. The opt-in requires CORS access and a CSP permitting
+the asset requests (`connect-src`), scripts, and `worker-src data:`. It is
+validated against the pinned MathJax4.1.3 bundled SRE worker; experimental
+`isLab` workers or relative imports are outside this contract.
+
+The parent must fetch the shared board template and install an opaque `srcdoc`
+with an explicit base and resolved resource URLs. This component does not alter
+sandbox/isolation, service workers, vendor files, global Worker/fetch, or
+resource URLs. The native-board build owns its pinned local bundle and
+checks its full dependency closure separately.
+
 `runtime/mathjax-opaque-adaptor.js` is a pre-loader configuration component for
 MathJax 4.1.3. It uses MathJax's DOM-adaptor startup API to create the original
 speech-rule-engine worker from a data URL in an opaque frame. Speech, braille,

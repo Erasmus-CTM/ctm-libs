@@ -6,8 +6,8 @@ const adaptorSource=fs.readFileSync(path.join(runtime,'mathjax-opaque-adaptor.js
 const protocol='ctm-coi-frame-startup';
 const defer=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 const tick=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
-function pair({flag=true,state='loading'}={}){
- const parentListeners={},childListeners=new Set(),workers=[],requests=[],replies=[],errors=[];
+function pair({flag=true,state='loading',transport}={}){
+ const parentListeners={},childListeners=new Set(),workers=[],requests=[],replies=[],errors=[],fetches=[];
  const childSource={},parentSource={postMessage(data){requests.push(data);queueMicrotask(()=>parentListeners.message({source:childSource,data,origin:'null'}));}};
  childSource.postMessage=data=>{replies.push(data);queueMicrotask(()=>childListeners.forEach(fn=>fn({source:parentSource,data,origin:'https://parent.test'})));};
  const frame={isConnected:true,contentWindow:childSource};
@@ -15,12 +15,12 @@ function pair({flag=true,state='loading'}={}){
  vm.createContext(parent);vm.runInContext(coordinator,parent);
  const config={},window={MathJax:config,parent:parentSource,addEventListener:(name,fn)=>childListeners.add(fn),removeEventListener:(name,fn)=>childListeners.delete(fn)};
  if(flag)window.CTM_COI_FRAME_STARTUP={protocol,version:1};
- const child={self:{origin:'null'},window,crypto:webcrypto,Worker:class{constructor(url){this.url=url;workers.push(this);}}};
+ const child={self:{origin:'null'},window,crypto:webcrypto,document:{currentScript:{getAttribute:()=>transport}},fetch:async(url,options)=>{fetches.push({url,options});return {ok:true,text:async()=>'self.originalWorker = true;'};},Worker:class{constructor(url){this.url=url;workers.push(this);}}};
  vm.createContext(child);vm.runInContext(adaptorSource,child);
  let factory;const native={};const browserAdaptor=()=>native;config.startup.adaptor='browserAdaptor';
  child.MathJax={config,_:{adaptors:{browserAdaptor:{browserAdaptor}}},startup:{constructors:{browserAdaptor},registerConstructor(name,value){factory=value;},useAdaptor(){},defaultReady(){return 'ready';}}};
  assert.equal(config.startup.ready(),'ready');const adaptor=factory();
- return {parent,parentListeners,childListeners,parentSource,childSource,frame,workers,requests,replies,errors,adaptor,start:()=>adaptor.createWorker(()=>{},{path:'https://vendor.test/sre',worker:'speech-worker.js',maps:'https://vendor.test/maps'})};
+ return {parent,parentListeners,childListeners,parentSource,childSource,frame,workers,requests,replies,errors,fetches,adaptor,start:()=>adaptor.createWorker(()=>{},{path:'https://vendor.test/sre',worker:'speech-worker.js',maps:'https://vendor.test/maps'})};
 }
 test('flagged SRE worker waits for deferred module publication at DCL and retained COI decision',async()=>{
  const f=pair(),gate=defer();const pending=f.start();await tick();assert.equal(f.requests.length,1);assert.equal(f.workers.length,0);
@@ -50,4 +50,25 @@ test('parent authenticates live iframe source and sends only the newest document
 test('decision failure stays visible and rejects only the requesting optional worker',async()=>{
  const f=pair(),gate=defer(),error=new Error('decision failed');f.parent.qpyodideCoiSettled=gate.promise;const pending=f.start();const rejected=assert.rejects(pending,/startup decision failed/);f.parentListeners.DOMContentLoaded();gate.reject(error);await rejected;
  assert.equal(f.workers.length,0);assert.equal(f.errors.length,1);assert.equal(f.errors[0][1],error);assert.equal(f.replies[0].type,'error');
+});
+test('CORS fetch and worker creation both wait for the retained parent decision',async()=>{
+ const f=pair({transport:'cors'}),gate=defer();f.parent.qpyodideCoiSettled=gate.promise;
+ const pending=f.start();f.parentListeners.DOMContentLoaded();await tick();
+ assert.equal(f.fetches.length,0);assert.equal(f.workers.length,0);
+ gate.resolve();await pending;
+ assert.equal(f.fetches.length,1);assert.equal(f.fetches[0].url,'https://vendor.test/sre/speech-worker.js');
+ assert.equal(f.fetches[0].options.mode,'cors');assert.equal(f.fetches[0].options.credentials,'omit');assert.equal(f.workers.length,1);
+ const imports=[],scope={self:{},importScripts:url=>imports.push(url)};
+ vm.runInNewContext(decodeURIComponent(f.workers[0].url.split(',')[1]),scope);
+ assert.equal(scope.self.maps,'https://vendor.test/maps');
+ assert.equal(decodeURIComponent(imports[0].split(',')[1]),'self.originalWorker = true;');
+});
+test('CORS transport does not fetch for retired documents or rejected parent decisions',async()=>{
+ const retired=pair({transport:'cors'}),gate=defer();retired.parent.qpyodideCoiSettled=gate.promise;
+ retired.start();retired.parentListeners.DOMContentLoaded();await tick();
+ assert.equal(retired.fetches.length,0);assert.equal(retired.workers.length,0);
+ const failed=pair({transport:'cors'}),other=defer();failed.parent.qpyodideCoiSettled=other.promise;
+ const pending=failed.start(),rejected=assert.rejects(pending,/startup decision failed/);
+ failed.parentListeners.DOMContentLoaded();other.reject(new Error('decision failed'));await rejected;
+ assert.equal(failed.fetches.length,0);assert.equal(failed.workers.length,0);
 });

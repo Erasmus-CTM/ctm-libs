@@ -7,8 +7,9 @@ const vm = require('node:vm');
 const source = fs.readFileSync(path.join(__dirname,
   '../_extensions/ctm-libs/runtime/mathjax-opaque-adaptor.js'), 'utf8');
 
-function preloader(origin, config) {
-  const context = vm.createContext({self: {origin}, window: {MathJax: config}});
+function preloader(origin, config, transport) {
+  const context = vm.createContext({self: {origin}, window: {MathJax: config},
+    document: {currentScript: {getAttribute() { return transport; }}}});
   vm.runInContext(source, context);
   return context;
 }
@@ -31,10 +32,16 @@ test('opaque contexts preserve authored ready functions and selected adaptors', 
   }
 });
 
-test('data transport preserves the original worker path, maps and listener', async () => {
+for (const transport of [undefined, 'cors']) test('data transport preserves worker, maps and listener: ' + transport, async () => {
   const config = {startup: {typeset: false}, browserAdaptor: {custom: 7},
     options: {enableSpeech: true, enableBraille: true}};
-  const context = preloader('null', config);
+  const context = preloader('null', config, transport);
+  const vendorSource = 'self.vendorLoaded = true; // exact official bytes\n';
+  const fetched = [];
+  context.fetch = async (url, options) => {
+    fetched.push({url, options});
+    return {ok: true, text: async () => vendorSource};
+  };
   const workerURLs = [];
   const nativeAdaptor = {kind: 'original DOM adaptor'};
   let factoryOptions, selected, readyCalls = 0, factory;
@@ -65,8 +72,43 @@ test('data transport preserves the original worker path, maps and listener', asy
   const imports = [], scope = {self: {}, importScripts(value) { imports.push(value); }};
   vm.runInNewContext(decodeURIComponent(workerURLs[0].split(',')[1]), scope);
   assert.equal(scope.self.maps, options.maps);
-  assert.deepEqual(imports, [options.path + '/' + options.worker]);
+  if (transport === 'cors') {
+    assert.equal(fetched.length, 1);
+    assert.equal(fetched[0].url, options.path + '/' + options.worker);
+    assert.equal(fetched[0].options.mode, 'cors');
+    assert.equal(fetched[0].options.credentials, 'omit');
+    assert.equal(decodeURIComponent(imports[0].split(',')[1]), vendorSource);
+    context.fetch = async () => ({ok: false, status: 404});
+    await assert.rejects(adaptor.createWorker(listener, options), /Cannot load MathJax worker: 404/);
+    context.fetch = async () => { throw new Error('CORS denied'); };
+    await assert.rejects(adaptor.createWorker(listener, options), /CORS denied/);
+    assert.equal(workerURLs.length, 1, 'failures create no orphan worker');
+  } else {
+    assert.equal(fetched.length, 0);
+    assert.deepEqual(imports, [options.path + '/' + options.worker]);
+  }
   assert.deepEqual(config.options, {enableSpeech: true, enableBraille: true});
+});
+
+test('opt-in loader uses CORS, retains custom loaders, and propagates load errors', async () => {
+  const config = {};
+  const context = preloader('null', config, 'cors');
+  const inserted = [];
+  context.document.createElement = name => { assert.equal(name, 'script'); return {}; };
+  context.document.head = {appendChild(script) { inserted.push(script); }};
+  const loaded = config.loader.require('https://assets.test/dynamic.js');
+  assert.equal(inserted[0].src, 'https://assets.test/dynamic.js');
+  assert.equal(inserted[0].crossOrigin, 'anonymous');
+  inserted[0].onload(); await loaded;
+  const failed = config.loader.require('https://assets.test/missing.js');
+  inserted[1].onerror(); await assert.rejects(failed, /Cannot load MathJax component/);
+  const require = () => 17;
+  const custom = {loader: {require}};
+  preloader('null', custom, 'cors');
+  assert.equal(custom.loader.require, require);
+  const ordinary = {};
+  preloader('https://example.test', ordinary, 'cors');
+  assert.equal(ordinary.loader, undefined);
 });
 
 test('a later component selection retains its own adaptor', () => {
