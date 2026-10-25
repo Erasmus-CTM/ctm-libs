@@ -40,7 +40,7 @@ test('a component\'s language: its option, then ctm-assessment: lang, then lang,
   assert.deepEqual(p.math, ['en', 'sv', 'lang']);
   p = C.probes(C.html(dir, 'none.qmd'));
   assert.deepEqual(p.math, ['en', 'en', 'lang']);  // Quarto sets lang: en by default
-  assert.deepEqual(p.supported, [['en', 'de', 'nb', 'es'], ['en', 'de', 'nb']]);
+  assert.deepEqual(p.supported, [['en', 'de', 'nb', 'es', 'nn'], ['en', 'de', 'nb']]);
 }));
 
 test('Lua renders the same catalogue texts as the browser', {skip}, () => withProject({
@@ -108,7 +108,7 @@ test('activities: the interface language goes through the chain, feedback keeps 
   const r = C.render(dir);
   assert.equal(r.status, 0, r.stderr);
   const pick = file => data(C.html(dir, file)).map(d => [d.uiLanguage, d.feedbackLanguage]);
-  assert.deepEqual(pick('nn.qmd'), [['nb', 'nn']]);
+  assert.deepEqual(pick('nn.qmd'), [['nn', 'nn']]);
   assert.deepEqual(pick('shared.qmd'), [['de', 'de-AT']]);
   assert.deepEqual(pick('attribute.qmd'), [['de', 'en'], ['en', 'es']]);
 }));

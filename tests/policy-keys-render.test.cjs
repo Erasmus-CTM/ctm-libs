@@ -100,7 +100,7 @@ test('A3/A7: unknown options, version among them, warn and name CTM Assessment 1
 }, dir => {
   const r = C.render(dir);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stderr, /ai-feedback: unknown option version \(_quarto\.yml\) is ignored; this becomes an error in CTM Assessment 1\.0\. Known options: mode, storage, base-url, model, ui-language, feedback-language, enabled, without-ai, policy-files, policy\./);
+  assert.match(r.stderr, /ai-feedback: unknown option version \(_quarto\.yml\) is ignored; this becomes an error in CTM Assessment 1\.0\. Known options: mode, storage, base-url, model, generator-model, ui-language, feedback-language, enabled, similar, without-ai, policy-files, policy, generation-policy\./);
   assert.match(r.stderr, /ai-feedback: unknown option modle \(page\.qmd\) is ignored; this becomes an error in CTM Assessment 1\.0\./);
   assert.match(r.stderr, /ctm-assessment: unknown option python-preload \(_quarto\.yml\) is ignored; this becomes an error in CTM Assessment 1\.0\. Known options: stop-after, lang, save, tab-links, modes, markdown-lint, progress, storage-key, export, assets, variants\./);
 }));

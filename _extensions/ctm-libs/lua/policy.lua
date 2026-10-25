@@ -12,8 +12,9 @@ return function(ctm)
   end
 
   -- {exercise = label or id, name = selected policy}; the name must be defined.
-  function M.selection(block, opts)
-    local name = opts['feedback-policy'] or block.attributes['feedback-policy'] or ''
+  function M.selection(block, opts, key)
+    key = key or "feedback-policy"
+    local name = opts[key] or block.attributes[key] or ''
     if type(name) ~= 'string' then fail('ai-feedback: feedback-policy must name an existing YAML policy') end
     name = name:gsub('^"(.*)"$', '%1'):gsub("^'(.*)'$", '%1')
     if name ~= '' and not ctm.settings.policies().names[name] then fail('ai-feedback: unknown feedback-policy ' .. name) end

@@ -5,7 +5,7 @@
   if (!F || F.attach) return;
   const CONFIG_KEY = 'ai-feedback-config-v1';
   // BEGIN GENERATED FEEDBACK STRINGS (locales/feedback.js; python scripts/sync-feedback-defaults.py)
-  const locale = {"en": {"button": "Feedback", "settings": "Feedback settings", "response": "Your response", "busy": "Getting feedback…", "cancelled": "Feedback cancelled.", "stale": "Your response changed. Request feedback again for the current version.", "copy": "Copy prompt", "copied": "Copied", "save": "Save settings", "saved": "Settings saved.", "cancel": "Cancel", "images": "Upload images", "clear": "Remove images", "storage": "Storage", "session": "This tab", "local": "Remember on this device", "mode": "Mode", "api": "Direct API", "url": "API base URL", "key": "Personal API key", "model": "Model", "models": "Fetch models", "privacy": "Direct feedback sends your response, selected context and images to the chosen provider.", "imageNote": "PNG, JPEG or WebP; up to three images, 8 MiB each and 12 MiB total. Images are not saved in browser storage.", "prompt": "Paste this prompt into your chosen AI chat.", "choose": "Choose a model", "legacy": "Use saved settings from", "invalidImage": "Use PNG, JPEG or WebP images within the size limit.", "hint": "Hint", "attachImages": "Attach these images in your AI chat as well."}, "de": {"button": "Feedback", "settings": "KI-Feedback einrichten", "response": "Deine Antwort", "busy": "Feedback wird geladen…", "cancelled": "Feedback abgebrochen.", "stale": "Deine Antwort hat sich geändert. Fordere erneut Feedback an.", "copy": "Prompt kopieren", "copied": "Kopiert", "save": "Einstellungen speichern", "saved": "Einstellungen gespeichert.", "cancel": "Abbrechen", "images": "Bilder hochladen", "clear": "Bilder entfernen", "storage": "Speicherung", "session": "Dieser Tab", "local": "Auf diesem Gerät merken", "mode": "Modus", "api": "Direkte API", "url": "API-Basis-URL", "key": "Persönlicher API-Schlüssel", "model": "Modell", "models": "Modelle abrufen", "privacy": "Direktes Feedback sendet deine Antwort, Kontext und Bilder an den gewählten Anbieter.", "imageNote": "PNG, JPEG oder WebP; höchstens drei Bilder, je 8 MiB und insgesamt 12 MiB. Bilder werden nicht dauerhaft gespeichert.", "prompt": "Füge diesen Prompt in deinen KI-Chat ein.", "choose": "Modell wählen", "legacy": "Gespeicherte Einstellungen übernehmen von", "invalidImage": "Verwende PNG-, JPEG- oder WebP-Bilder innerhalb der Größenbegrenzung.", "hint": "Hinweis", "attachImages": "Füge diese Bilder ebenfalls in deinem KI-Chat an."}, "nb": {"button": "Tilbakemelding", "settings": "Innstillinger for KI", "response": "Svaret ditt", "busy": "Henter tilbakemelding…", "cancelled": "Avbrutt.", "stale": "Svaret ditt er endret. Be om ny tilbakemelding.", "copy": "Kopier instruksjon", "copied": "Kopiert", "save": "Lagre innstillinger", "saved": "Innstillinger lagret.", "cancel": "Avbryt", "images": "Last opp bilder", "clear": "Fjern bilder", "storage": "Lagring", "session": "Denne fanen", "local": "Husk på denne enheten", "mode": "Modus", "api": "Direkte API", "url": "API-adresse", "key": "Personlig API-nøkkel", "model": "Modell", "models": "Hent modeller", "privacy": "Direkte tilbakemelding sender svaret, konteksten og bildene til valgt leverandør.", "imageNote": "PNG, JPEG eller WebP; opptil tre bilder, 8 MiB hver og 12 MiB totalt. Bilder lagres ikke i nettleserlagringen.", "prompt": "Lim inn instruksjonen i din valgte KI-chat.", "choose": "Velg modell", "legacy": "Bruk lagrede innstillinger fra", "invalidImage": "Bruk PNG-, JPEG- eller WebP-bilder innenfor størrelsesgrensen.", "hint": "Hint", "attachImages": "Legg også ved disse bildene i KI-chatten."}, "es": {"button": "Comentarios", "settings": "Configurar IA", "response": "Tu respuesta", "busy": "Obteniendo comentarios…", "cancelled": "Cancelado.", "stale": "Tu respuesta ha cambiado. Solicita comentarios de nuevo.", "copy": "Copiar instrucciones", "copied": "Copiado", "save": "Guardar configuración", "saved": "Configuración guardada.", "cancel": "Cancelar", "images": "Subir imágenes", "clear": "Quitar imágenes", "storage": "Almacenamiento", "session": "Esta pestaña", "local": "Recordar en este dispositivo", "mode": "Modo", "api": "API directa", "url": "URL base de la API", "key": "Clave API personal", "model": "Modelo", "models": "Obtener modelos", "privacy": "Los comentarios directos envían tu respuesta, contexto e imágenes al proveedor elegido.", "imageNote": "PNG, JPEG o WebP; hasta tres imágenes, 8 MiB cada una y 12 MiB en total. Las imágenes no se guardan en el almacenamiento del navegador.", "prompt": "Pega estas instrucciones en tu chat de IA.", "choose": "Elegir modelo", "legacy": "Usar configuración guardada de", "invalidImage": "Usa imágenes PNG, JPEG o WebP dentro del límite de tamaño.", "hint": "Pista", "attachImages": "Adjunta también estas imágenes en tu chat de IA."}};
+  const locale = {"en": {"button": "Feedback", "settings": "Feedback settings", "response": "Your response", "busy": "Getting feedback…", "cancelled": "Feedback cancelled.", "stale": "Your response changed. Request feedback again for the current version.", "copy": "Copy prompt", "copied": "Copied", "save": "Save settings", "saved": "Settings saved.", "cancel": "Cancel", "images": "Upload images", "clear": "Remove images", "storage": "Storage", "session": "This tab", "local": "Remember on this device", "mode": "Mode", "api": "Direct API", "url": "API base URL", "key": "Personal API key", "model": "Model", "models": "Fetch models", "privacy": "Direct feedback sends your response, selected context and images to the chosen provider.", "imageNote": "PNG, JPEG or WebP; up to three images, 8 MiB each and 12 MiB total. Images are not saved in browser storage.", "prompt": "Paste this prompt into your chosen AI chat.", "choose": "Choose a model", "legacy": "Use saved settings from", "invalidImage": "Use PNG, JPEG or WebP images within the size limit.", "hint": "Hint", "attachImages": "Attach these images in your AI chat as well.", "generatorModel": "Model for generating problems"}, "de": {"button": "Feedback", "settings": "KI-Feedback einrichten", "response": "Deine Antwort", "busy": "Feedback wird geladen…", "cancelled": "Feedback abgebrochen.", "stale": "Deine Antwort hat sich geändert. Fordere erneut Feedback an.", "copy": "Prompt kopieren", "copied": "Kopiert", "save": "Einstellungen speichern", "saved": "Einstellungen gespeichert.", "cancel": "Abbrechen", "images": "Bilder hochladen", "clear": "Bilder entfernen", "storage": "Speicherung", "session": "Dieser Tab", "local": "Auf diesem Gerät merken", "mode": "Modus", "api": "Direkte API", "url": "API-Basis-URL", "key": "Persönlicher API-Schlüssel", "model": "Modell", "models": "Modelle abrufen", "privacy": "Direktes Feedback sendet deine Antwort, Kontext und Bilder an den gewählten Anbieter.", "imageNote": "PNG, JPEG oder WebP; höchstens drei Bilder, je 8 MiB und insgesamt 12 MiB. Bilder werden nicht dauerhaft gespeichert.", "prompt": "Füge diesen Prompt in deinen KI-Chat ein.", "choose": "Modell wählen", "legacy": "Gespeicherte Einstellungen übernehmen von", "invalidImage": "Verwende PNG-, JPEG- oder WebP-Bilder innerhalb der Größenbegrenzung.", "hint": "Hinweis", "attachImages": "Füge diese Bilder ebenfalls in deinem KI-Chat an.", "generatorModel": "Modell zum Erstellen von Aufgaben"}, "nb": {"button": "Tilbakemelding", "settings": "Innstillinger for KI", "response": "Svaret ditt", "busy": "Henter tilbakemelding…", "cancelled": "Avbrutt.", "stale": "Svaret ditt er endret. Be om ny tilbakemelding.", "copy": "Kopier instruksjon", "copied": "Kopiert", "save": "Lagre innstillinger", "saved": "Innstillinger lagret.", "cancel": "Avbryt", "images": "Last opp bilder", "clear": "Fjern bilder", "storage": "Lagring", "session": "Denne fanen", "local": "Husk på denne enheten", "mode": "Modus", "api": "Direkte API", "url": "API-adresse", "key": "Personlig API-nøkkel", "model": "Modell", "models": "Hent modeller", "privacy": "Direkte tilbakemelding sender svaret, konteksten og bildene til valgt leverandør.", "imageNote": "PNG, JPEG eller WebP; opptil tre bilder, 8 MiB hver og 12 MiB totalt. Bilder lagres ikke i nettleserlagringen.", "prompt": "Lim inn instruksjonen i din valgte KI-chat.", "choose": "Velg modell", "legacy": "Bruk lagrede innstillinger fra", "invalidImage": "Bruk PNG-, JPEG- eller WebP-bilder innenfor størrelsesgrensen.", "hint": "Hint", "attachImages": "Legg også ved disse bildene i KI-chatten.", "generatorModel": "Modell for å lage oppgaver"}, "es": {"button": "Comentarios", "settings": "Configurar IA", "response": "Tu respuesta", "busy": "Obteniendo comentarios…", "cancelled": "Cancelado.", "stale": "Tu respuesta ha cambiado. Solicita comentarios de nuevo.", "copy": "Copiar instrucciones", "copied": "Copiado", "save": "Guardar configuración", "saved": "Configuración guardada.", "cancel": "Cancelar", "images": "Subir imágenes", "clear": "Quitar imágenes", "storage": "Almacenamiento", "session": "Esta pestaña", "local": "Recordar en este dispositivo", "mode": "Modo", "api": "API directa", "url": "URL base de la API", "key": "Clave API personal", "model": "Modelo", "models": "Obtener modelos", "privacy": "Los comentarios directos envían tu respuesta, contexto e imágenes al proveedor elegido.", "imageNote": "PNG, JPEG o WebP; hasta tres imágenes, 8 MiB cada una y 12 MiB en total. Las imágenes no se guardan en el almacenamiento del navegador.", "prompt": "Pega estas instrucciones en tu chat de IA.", "choose": "Elegir modelo", "legacy": "Usar configuración guardada de", "invalidImage": "Usa imágenes PNG, JPEG o WebP dentro del límite de tamaño.", "hint": "Pista", "attachImages": "Adjunta también estas imágenes en tu chat de IA.", "generatorModel": "Modelo para generar problemas"}, "nn": {"button": "Tilbakemelding", "settings": "KI-innstillingar", "response": "Svaret ditt", "busy": "Hentar tilbakemelding…", "cancelled": "Avbrote.", "stale": "Svaret ditt er endra. Be om ny tilbakemelding.", "copy": "Kopier instruksjon", "copied": "Kopiert", "save": "Lagre innstillingar", "saved": "Innstillingane er lagra.", "cancel": "Avbryt", "images": "Last opp bilete", "clear": "Fjern bilete", "storage": "Lagring", "session": "Denne fana", "local": "Hugs på denne eininga", "mode": "Modus", "api": "Direkte API", "url": "API-basisadresse", "key": "Personleg API-nøkkel", "model": "Modell", "models": "Hent modellar", "privacy": "Direkte tilbakemelding sender svaret, konteksten og bileta til den valde tilbydaren.", "imageNote": "PNG, JPEG eller WebP; høgst tre bilete, 8 MiB kvar og 12 MiB til saman. Bilete blir ikkje lagra.", "prompt": "Lim inn denne instruksjonen i den valde KI-chatten.", "choose": "Vel ein modell", "legacy": "Bruk lagra innstillingar frå", "invalidImage": "Bruk PNG-, JPEG- eller WebP-bilete innanfor storleiksgrensa.", "hint": "Hint", "attachImages": "Legg òg ved desse bileta i KI-chatten.", "generatorModel": "Modell for å lage oppgåver"}};
   // END GENERATED FEEDBACK STRINGS
   function lang(code) { const key = String(code || document.documentElement.lang || 'en').toLowerCase().replace(/_/g, '-').split('-')[0]; return locale[key === 'no' || key === 'nn' ? 'nb' : key] || locale.en; }
   function node(tag, text, className) { const el = document.createElement(tag); if (text !== undefined) el.textContent = text; if (className) el.className = className; return el; }
@@ -14,14 +14,15 @@
   let memoryConfig = null;
   function loadConfig() {
     for (const kind of ['local', 'session']) {
-      try { const saved = JSON.parse(store(kind)?.getItem(CONFIG_KEY) || 'null'); if (saved) return { ...saved, storage: kind }; } catch {}
+      try { const saved = JSON.parse(store(kind)?.getItem(CONFIG_KEY) || 'null'); if (saved) return { generatorModel: root.__aiFeedbackConfig?.generatorModel || '', ...saved, storage: kind }; } catch {}
     }
     if (memoryConfig) return { ...memoryConfig };
-    return { mode: root.__aiFeedbackConfig?.mode || 'copy', storage: root.__aiFeedbackConfig?.storage || 'local', baseUrl: root.__aiFeedbackConfig?.baseUrl || '', model: root.__aiFeedbackConfig?.model || '', apiKey: '' };
+    return { mode: root.__aiFeedbackConfig?.mode || 'copy', storage: root.__aiFeedbackConfig?.storage || 'local', baseUrl: root.__aiFeedbackConfig?.baseUrl || '', model: root.__aiFeedbackConfig?.model || '', generatorModel: root.__aiFeedbackConfig?.generatorModel || '', apiKey: '' };
   }
   function saveConfig(config) {
     memoryConfig = { ...config };
     try { store(config.storage)?.setItem(CONFIG_KEY, JSON.stringify(config)); store(config.storage === 'local' ? 'session' : 'local')?.removeItem(CONFIG_KEY); } catch {}
+    if (root.document) root.document.dispatchEvent(new CustomEvent('ai-feedback:settings-change'));
   }
   let settings;
   function openSettings() {
@@ -51,7 +52,7 @@
       return input;
     }
     field('mode', L.mode, [['copy', L.copy], ['api', L.api]]);
-    field('baseUrl', L.url); field('apiKey', L.key, null, 'password'); field('model', L.model);
+    field('baseUrl', L.url); field('apiKey', L.key, null, 'password'); field('model', L.model); field('generatorModel', L.generatorModel);
     field('storage', L.storage, [['session', L.session], ['local', L.local]]);
     function populate(cfg) { for (const [k, v] of Object.entries(cfg)) if (fields[k]) fields[k].value = v; }
     settings.populate = populate;
@@ -64,7 +65,12 @@
       if (saved) { const migrate = button(L.legacy + ' ' + label); migrate.onclick = () => populate({ ...saved, mode: saved.mode || 'api' }); form.append(migrate); }
     }
     const models = button(L.models);
-    const choices = node('select'); choices.setAttribute('aria-label', L.model); choices.hidden = true;
+    const choices = node('select'), generatorChoices = node('select');
+    const modelChoices = [['model', choices, L.model], ['generatorModel', generatorChoices, L.generatorModel]];
+    for (const [name, select, label] of modelChoices) {
+      select.setAttribute('aria-label', label); select.hidden = true;
+      select.onchange = () => { if (select.value) fields[name].value = select.value; };
+    }
     models.onclick = async () => {
       models.disabled = true;
       try {
@@ -72,16 +78,19 @@
         if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw new Error('Use a valid API base URL.');
         const response = await fetch(url.href.replace(/\/+$/, '') + '/models', { headers: fields.apiKey.value ? { Authorization: 'Bearer ' + fields.apiKey.value } : {}, signal: AbortSignal.timeout(15000) });
         if (!response.ok) throw new Error('API ' + response.status);
-        const data = await response.json(); choices.replaceChildren();
-        choices.add(new Option(L.choose, ''));
-        for (const model of (data.data || []).filter(m => typeof m.id === 'string' && !F.modelPolicy(m.id).incompatible)) choices.add(new Option(model.id, model.id));
-        choices.hidden = false;
+        const data = await response.json();
+        const available = (data.data || []).filter(m => typeof m.id === 'string' && !F.modelPolicy(m.id).incompatible);
+        for (const [name, select] of modelChoices) {
+          select.replaceChildren(new Option(L.choose, ''));
+          for (const model of available) select.add(new Option(model.id, model.id));
+          select.value = available.some(model => model.id === fields[name].value) ? fields[name].value : '';
+          select.hidden = false;
+        }
       } catch (e) { message.textContent = e.message; } finally { models.disabled = false; }
     };
-    choices.onchange = () => { if (choices.value) fields.model.value = choices.value; };
     const save = button(L.save);
-    save.onclick = () => { const cfg = {}; for (const key of ['mode', 'baseUrl', 'apiKey', 'model', 'storage']) cfg[key] = fields[key].value.trim(); saveConfig(cfg); message.textContent = L.saved; closeSettings(); };
-    form.append(models, choices, save, message, node('p', L.privacy, 'ai-feedback-notice'));
+    save.onclick = () => { const cfg = {}; for (const key of ['mode', 'baseUrl', 'apiKey', 'model', 'generatorModel', 'storage']) cfg[key] = fields[key].value.trim(); saveConfig(cfg); message.textContent = L.saved; closeSettings(); };
+    form.append(models, choices, generatorChoices, save, message, node('p', L.privacy, 'ai-feedback-notice'));
     settings.append(form);
     if (root.CTMSettings) root.CTMSettings.register('ai', L.settings, settings);
     else document.body.append(settings);
@@ -89,6 +98,12 @@
   }
   document.addEventListener('ctm:settings-open', () => { buildSettings().populate?.(loadConfig()); });
   function getClient() { return F.createClient(loadConfig(), { storage: store(loadConfig().storage) }); }
+  function getGenerationClient() {
+    const cfg = loadConfig();
+    if (cfg.mode !== 'api') throw new F.FeedbackError('CONFIGURATION', 'Choose Direct API in Feedback settings.');
+    if (!cfg.generatorModel && !F.modelPolicy(cfg.model).slow) throw new F.FeedbackError('CONFIGURATION', 'Choose a reasoning model for generating problems in Feedback settings.');
+    return F.createClient({...cfg, model: cfg.generatorModel || cfg.model}, {storage: store(cfg.storage)});
+  }
   function signature(request) { return JSON.stringify(request); }
   function attach(options) {
     const { button: trigger, output, getRequest } = options;
@@ -96,14 +111,16 @@
     let controller, disposed = false, quietCancellation = false;
     let count = 0;
     const counterKey = options.id ? 'ai-feedback-hints-v2|' + location.pathname + '|' + options.id : null;
-    try { count = Number(store('session')?.getItem(counterKey)) || 0; } catch {}
+    try { if (counterKey) count = Number(store('session')?.getItem(counterKey)) || 0; } catch {}
     let policyFingerprint;
     function syncPolicy() {
       if (!options.integration) return;
-      const fingerprint = JSON.stringify(F.resolvePolicy(options.integration, options.uiLanguage, options.policyDefaults, undefined, options.policySelection));
+      const {harder, easier, same, ...teaching} = F.resolvePolicy(options.integration, options.uiLanguage, options.policyDefaults, undefined, options.policySelection);
+      const fingerprint = JSON.stringify(teaching);
       if (fingerprint === policyFingerprint) return;
       const changed = policyFingerprint !== undefined;
       policyFingerprint = fingerprint;
+      if (!counterKey) { if (changed) count = 0; return; }
       try {
         if (changed || store('session')?.getItem(counterKey + '|policy') !== fingerprint) {
           count = 0; store('session')?.removeItem(counterKey);
@@ -274,6 +291,6 @@
     renderPolicySummaries();
   }
 
-  Object.assign(F, { attach, openSettings, settingsButton, buildSettings, loadConfig, saveConfig, getClient, initActivity, initialize, renderPolicySummaries, locales: locale });
+  Object.assign(F, { attach, openSettings, settingsButton, buildSettings, loadConfig, saveConfig, getClient, getGenerationClient, initActivity, initialize, renderPolicySummaries, locales: locale });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize); else initialize();
 })(globalThis);
