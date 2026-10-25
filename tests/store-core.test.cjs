@@ -258,9 +258,21 @@ function checkStore(source, assert) {
   fdsource.clear();
   ok(fd1.calls.join(',')==='forget,clear' && fd2.calls.length===0,'optional forget honors duplicate runtime scoping owned by core');
 
+  var auxiliary=setup();auxiliary.input({fields:{x:''},generated:[{question:'practice'}]});
+  var ah=auxiliary.register({hasAnswer:function(inputs){return !!inputs.fields.x;}});
+  var beforeAux=auxiliary.events.length;ah.flush({notify:false});
+  ok(auxiliary.events.length===beforeAux && !!auxiliary.local[auxiliary.store.key('ex')],'auxiliary flush saves without answer-change events');
+  ah.restore();
+  ok(auxiliary.events[auxiliary.events.length-1].detail.answered===false,'adapter excludes auxiliary data from restored answered marker');
+  auxiliary.input({fields:{x:'1'},generated:[]});ah.result({status:'correct',score:1});beforeAux=auxiliary.events.length;
+  auxiliary.input({fields:{x:'1'},generated:[{question:'practice',answer:'0'}]});ah.flush({notify:false});
+  ok(auxiliary.events.length===beforeAux && JSON.parse(auxiliary.local[auxiliary.store.key('ex')]).result.score===1,'auxiliary edits retain original score and do not reset navigation');
+  ah.changed();ah.flush();
+  ok(!JSON.parse(auxiliary.local[auxiliary.store.key('ex')]).result,'ordinary edits still invalidate credit');
+
   return count;
 }
 test('shared store contracts and durable quota recovery',()=>{
  const source=['ctm-layout.js','ctm-store.js'].map(name=>fs.readFileSync(path.join(__dirname,'../_extensions/ctm-libs/ui',name),'utf8')).join('\n');
- assert.equal(checkStore(source,assert.ok),85);
+ assert.equal(checkStore(source,assert.ok),89);
 });

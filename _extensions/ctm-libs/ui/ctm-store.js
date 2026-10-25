@@ -293,13 +293,13 @@
       if (entry.outdated) entry.lastResult = null;
       var outcome = {state: state, record: clone(record), variant: selected || null, outdated: entry.outdated};
       if (state === 'restored') options.write(clone(record.inputs), outcome);
-      emit('ctm:store-restore', {component: options.component, id: entry.id, runtimeId: entry.runtimeId, state: state, answered: hasAnswer(record.inputs), result: record.result || null, outdated: outcome.outdated});
+      emit('ctm:store-restore', {component: options.component, id: entry.id, runtimeId: entry.runtimeId, state: state, answered: options.hasAnswer ? !!options.hasAnswer(record.inputs) : hasAnswer(record.inputs), result: record.result || null, outdated: outcome.outdated});
       return outcome;
     }
-    function flush() {
+    function flush(flushOptions) {
       cancel(entry);
       var inputs = options.read();
-      emit('ctm:answer-change', {component: options.component, id: entry.id, runtimeId: entry.runtimeId, answered: hasAnswer(inputs)});
+      if (!flushOptions || flushOptions.notify !== false) emit('ctm:answer-change', {component: options.component, id: entry.id, runtimeId: entry.runtimeId, answered: options.hasAnswer ? !!options.hasAnswer(inputs) : hasAnswer(inputs)});
       return save(entry, inputs);
     }
     function changed() {
