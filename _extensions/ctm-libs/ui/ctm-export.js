@@ -70,6 +70,7 @@
     try{config=node?JSON.parse(node.textContent):{};}catch(error){/* defaults */}
     var messages=config.messages || {},t=function(key,fallback){return messages[key] || fallback;};
     var previous=document.activeElement,old=document.getElementById('ctm-export-view');
+    if(previous && previous.closest('dialog#ctm-settings')) previous=document.querySelector('.ctm-settings-toolbar button');
     if(old)old.remove();
     var heading=document.querySelector('main h1') || document.querySelector('h1');
     var data=serialize(items(),{course:window.CTMStore?CTMStore.course:location.pathname,title:heading?heading.textContent:document.title,at:new Date().toISOString()});
@@ -93,7 +94,8 @@
     button(t('exportClose','Close'),function(){panel.remove();if(previous && previous.focus)previous.focus({preventScroll:true});});
     panel.append(title,actions,area);
     var bar=document.querySelector('.ctm-save-bar');
-    if(bar)bar.insertAdjacentElement('afterend',panel);else(document.querySelector('main') || document.body).prepend(panel);
+    if(bar && !bar.closest('dialog'))bar.insertAdjacentElement('afterend',panel);else(document.querySelector('main') || document.body).prepend(panel);
+    if(window.CTMSettings)window.CTMSettings.close();
     area.focus();area.select();return data;
   }
   window.CTMExport={version:1,open:open,serialize:serialize};

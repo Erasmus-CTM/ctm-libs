@@ -3,7 +3,7 @@ CTMLocales.add("math-exercise",
 /*BEGIN-JSON*/
 {"$languages": ["en", "de", "nb"],
  "en": {
-  "legend": [["x^2","x^2 \\text{ or } x{**}2","Power"],["\\sqrt{x}","sqrt(x)","Square root"],["\\sqrt[n]{x}","root(x, n)","n-th root"],["\\dfrac{a}{b}","a/b","Fraction"],["\\pi","pi","Pi"],["e","E","Euler's number e"],["\\sin(x)","sin(x)","Sine"],["\\cos(x)","cos(x)","Cosine"],["\\tan(x)","tan(x)","Tangent"],["\\ln(x)","ln(x)","Natural logarithm"],["\\log_a(x)","log(x, a)","Log to base a"],["|x|","Abs(x)","Absolute value"],["\\infty","inf &nbsp;or&nbsp; oo","Infinity"],["\\int f\\,dx","integrate(f, x)","Integral"],["\\dfrac{d}{dx}f","diff(f, x)","Derivative"]],
+  "legend": [["x^2","x^2 or x**2","Power"],["\\sqrt{x}","sqrt(x)","Square root"],["\\sqrt[n]{x}","root(x, n)","n-th root"],["\\dfrac{a}{b}","a/b","Fraction"],["\\pi","pi","Pi"],["e","E","Euler's number e"],["\\sin(x)","sin(x)","Sine"],["\\cos(x)","cos(x)","Cosine"],["\\tan(x)","tan(x)","Tangent"],["\\ln(x)","ln(x)","Natural logarithm"],["\\log_a(x)","log(x, a)","Log to base a"],["|x|","Abs(x)","Absolute value"],["\\infty","inf &nbsp;or&nbsp; oo","Infinity"],["\\int f\\,dx","integrate(f, x)","Integral"],["\\dfrac{d}{dx}f","diff(f, x)","Derivative"]],
   "legendOps": "Basic operators:&nbsp;<code>+</code>&nbsp;<code>-</code>&nbsp;<code>*</code>&nbsp;<code>/</code>&nbsp;&nbsp;|&nbsp;&nbsp;Brackets:&nbsp;<code>(</code>&nbsp;<code>)</code>&nbsp;&nbsp;|&nbsp;&nbsp;Power:&nbsp;<code>^</code>&nbsp;or&nbsp;<code>**</code>",
   "legendThExpr": "Expression",
   "legendThInput": "Input",
@@ -62,7 +62,7 @@ CTMLocales.add("math-exercise",
   "poolReloadTitle": "Load a new random task"
  },
  "de": {
-  "legend": [["x^2","x^2 \\text{ oder } x{**}2","Potenz"],["\\sqrt{x}","sqrt(x)","Quadratwurzel"],["\\sqrt[n]{x}","root(x, n)","n-te Wurzel"],["\\dfrac{a}{b}","a/b","Bruch"],["\\pi","pi","Kreiszahl π"],["e","E","Eulersche Zahl e"],["\\sin(x)","sin(x)","Sinus"],["\\cos(x)","cos(x)","Kosinus"],["\\tan(x)","tan(x)","Tangens"],["\\ln(x)","ln(x)","Nat. Logarithmus"],["\\log_a(x)","log(x, a)","Log. zur Basis a"],["|x|","Abs(x)","Betrag"],["\\infty","inf &nbsp;oder&nbsp; oo","Unendlich"],["\\int f\\,dx","integrate(f, x)","Integral"],["\\dfrac{d}{dx}f","diff(f, x)","Ableitung"]],
+  "legend": [["x^2","x^2 oder x**2","Potenz"],["\\sqrt{x}","sqrt(x)","Quadratwurzel"],["\\sqrt[n]{x}","root(x, n)","n-te Wurzel"],["\\dfrac{a}{b}","a/b","Bruch"],["\\pi","pi","Kreiszahl π"],["e","E","Eulersche Zahl e"],["\\sin(x)","sin(x)","Sinus"],["\\cos(x)","cos(x)","Kosinus"],["\\tan(x)","tan(x)","Tangens"],["\\ln(x)","ln(x)","Nat. Logarithmus"],["\\log_a(x)","log(x, a)","Log. zur Basis a"],["|x|","Abs(x)","Betrag"],["\\infty","inf &nbsp;oder&nbsp; oo","Unendlich"],["\\int f\\,dx","integrate(f, x)","Integral"],["\\dfrac{d}{dx}f","diff(f, x)","Ableitung"]],
   "legendOps": "Grundrechenzeichen:&nbsp;<code>+</code>&nbsp;<code>-</code>&nbsp;<code>*</code>&nbsp;<code>/</code>&nbsp;&nbsp;|&nbsp;&nbsp;Klammern:&nbsp;<code>(</code>&nbsp;<code>)</code>&nbsp;&nbsp;|&nbsp;&nbsp;Potenz:&nbsp;<code>^</code>&nbsp;oder&nbsp;<code>**</code>",
   "legendThExpr": "Ausdruck",
   "legendThInput": "Eingabe",
@@ -121,7 +121,7 @@ CTMLocales.add("math-exercise",
   "poolReloadTitle": "Neue Zufallsaufgabe laden"
  },
  "nb": {
-  "legend": [["x^2","x^2 \\text{ eller } x{**}2","Potens"],["\\sqrt{x}","sqrt(x)","Kvadratrot"],["\\sqrt[n]{x}","root(x, n)","n-te rot"],["\\dfrac{a}{b}","a/b","Brøk"],["\\pi","pi","Pi"],["e","E","Eulers tall e"],["\\sin(x)","sin(x)","Sinus"],["\\cos(x)","cos(x)","Cosinus"],["\\tan(x)","tan(x)","Tangens"],["\\ln(x)","ln(x)","Naturlig logaritme"],["\\log_a(x)","log(x, a)","Logaritme med grunntall a"],["|x|","Abs(x)","Absoluttverdi"],["\\infty","inf &nbsp;eller&nbsp; oo","Uendelig"],["\\int f\\,dx","integrate(f, x)","Integral"],["\\dfrac{d}{dx}f","diff(f, x)","Derivert"]],
+  "legend": [["x^2","x^2 eller x**2","Potens"],["\\sqrt{x}","sqrt(x)","Kvadratrot"],["\\sqrt[n]{x}","root(x, n)","n-te rot"],["\\dfrac{a}{b}","a/b","Brøk"],["\\pi","pi","Pi"],["e","E","Eulers tall e"],["\\sin(x)","sin(x)","Sinus"],["\\cos(x)","cos(x)","Cosinus"],["\\tan(x)","tan(x)","Tangens"],["\\ln(x)","ln(x)","Naturlig logaritme"],["\\log_a(x)","log(x, a)","Logaritme med grunntall a"],["|x|","Abs(x)","Absoluttverdi"],["\\infty","inf &nbsp;eller&nbsp; oo","Uendelig"],["\\int f\\,dx","integrate(f, x)","Integral"],["\\dfrac{d}{dx}f","diff(f, x)","Derivert"]],
   "legendOps": "Grunnleggende operatorer:&nbsp;<code>+</code>&nbsp;<code>-</code>&nbsp;<code>*</code>&nbsp;<code>/</code>&nbsp;&nbsp;|&nbsp;&nbsp;Parenteser:&nbsp;<code>(</code>&nbsp;<code>)</code>&nbsp;&nbsp;|&nbsp;&nbsp;Potens:&nbsp;<code>^</code>&nbsp;eller&nbsp;<code>**</code>",
   "legendThExpr": "Uttrykk",
   "legendThInput": "Inntasting",

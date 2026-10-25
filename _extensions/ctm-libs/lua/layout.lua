@@ -6,7 +6,8 @@ return function(ctm)
   function M.use()
     if not quarto.doc.is_format("html:js") or registered then return end
     registered = true
-    ctm.deps.html({name = "ctm-layout", scripts = {"ui/ctm-layout.js"}})
+    ctm.locale.use("ui")
+    ctm.deps.html({name = "ctm-layout", scripts = {"ui/ctm-layout.js", "ui/ctm-settings.js"}, stylesheets = {"ui/ctm-ui.css"}})
   end
   function M.finalize(doc)
     if not registered then return doc end

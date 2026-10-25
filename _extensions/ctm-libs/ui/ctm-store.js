@@ -4,6 +4,7 @@
   if (window.CTMStore) return;
   var config, course, page, prefix, pagePrefix, prefsKey, seedKey, clearKey, clearChannel, prefs;
   var entries = [], memory = {localStorage: {}, sessionStorage: {}}, dirty = {localStorage: {}, sessionStorage: {}}, failed = {}, messages = {};
+  var savedHere = false, compactNotice;
   var LIMIT = 64 * 1024, delay = 250;
   function emit(type, detail) { document.dispatchEvent(new CustomEvent(type, {detail: detail})); }
   function text(key, fallback) { return config && config.messages && config.messages[key] || fallback; }
@@ -12,6 +13,7 @@
     messages[key] = text(key, fallback);
     var node = document.querySelector('.ctm-save-status');
     if (node) node.textContent = messages[key];
+    if (compactNotice) compactNotice.textContent = messages[key];
     emit('ctm:store-message', {key: key, text: messages[key]});
   }
   // Keep a memory mirror. A failed durable write must never delete legacy data.
@@ -233,7 +235,9 @@
       announce('recordTooLarge', 'This answer is too large to save. Copy it before leaving the page.');
       return false;
     }
-    return put(name, serialized);
+    var persisted = put(name, serialized);
+    if (persisted) { savedHere = true; updateBar(); }
+    return persisted;
   }
   function valid(record, component) {
     return record && record.v === 1 && record.component === component && record.inputs &&
@@ -289,11 +293,21 @@
       if (entry.outdated) entry.lastResult = null;
       var outcome = {state: state, record: clone(record), variant: selected || null, outdated: entry.outdated};
       if (state === 'restored') options.write(clone(record.inputs), outcome);
-      emit('ctm:store-restore', {component: options.component, id: entry.id, runtimeId: entry.runtimeId, state: state, result: record.result || null, outdated: outcome.outdated});
+      emit('ctm:store-restore', {component: options.component, id: entry.id, runtimeId: entry.runtimeId, state: state, answered: hasAnswer(record.inputs), result: record.result || null, outdated: outcome.outdated});
       return outcome;
     }
-    function flush() { cancel(entry); return save(entry, options.read()); }
-    function changed() { cancel(entry); entry.lastResult = null; entry.outdated = !!entry.lastChecked; if (writable(entry)) entry.timer = setTimeout(flush, delay); }
+    function flush() {
+      cancel(entry);
+      var inputs = options.read();
+      emit('ctm:answer-change', {component: options.component, id: entry.id, runtimeId: entry.runtimeId, answered: hasAnswer(inputs)});
+      return save(entry, inputs);
+    }
+    function changed() {
+      cancel(entry); entry.lastResult = null; entry.outdated = !!entry.lastChecked;
+      savedHere = false; updateBar();
+      emit('ctm:answer-change', {component: options.component, id: entry.id, runtimeId: entry.runtimeId, answered: true});
+      entry.timer = setTimeout(flush, delay);
+    }
     function result(detail) {
       detail = detail || {};
       if (!['correct', 'partial', 'wrong', 'invalid'].includes(detail.status) ||
@@ -379,12 +393,21 @@
       if (name.startsWith(pagePrefix) && !live.includes(name) && !future(parse(get(name)))) remove(name);
     });
   }
+  function hasAnswer(value) {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'string') return value.trim().length > 0;
+    if (typeof value === 'object') return Object.keys(value).some(function (key) { return hasAnswer(value[key]); });
+    return true;
+  }
   function updateBar() {
     var button = document.querySelector('[data-ctm-save-toggle]');
     if (button) button.textContent = enabled() ? text('saveOff', 'Do not save on this device') : text('saveOn', 'Save again');
     var notice = document.querySelector('.ctm-save-notice');
     if (notice) notice.textContent = config.save === false ? text('savingDisabled', 'Saving is off for this page.') :
       enabled() ? text('savingNotice', 'Your answers are saved only in this browser.') : text('savingOffNotice', 'Saving is off on this device for this course.');
+    if (compactNotice) compactNotice.textContent = failed.localStorage ? text('storageUnavailable', 'Saving is unavailable. Your answers are kept in memory for this page only.') :
+      config.save === false || !enabled() ? text('notSaving', 'Answers aren’t being saved') :
+      savedHere && !entries.some(function (entry) { return entry.timer; }) ? text('savedLocal', 'Saved in this browser') : text('savingLocal', 'Saving in this browser');
   }
   function start() {
     configure(); cleanup(); updateBar();
@@ -392,11 +415,19 @@
     if (status && keys.length) status.textContent = messages[keys[keys.length - 1]];
     var bar = document.querySelector('.ctm-save-bar');
     if (bar) {
+      if (window.CTMSettings) {
+        window.CTMSettings.register('answers', text('answersStorage', 'Answers & storage'), bar);
+        compactNotice = document.createElement('button'); compactNotice.type = 'button';
+        compactNotice.className = 'ctm-save-summary';
+        compactNotice.setAttribute('aria-haspopup', 'dialog'); compactNotice.setAttribute('aria-controls', 'ctm-settings');
+        compactNotice.onclick = function () { window.CTMSettings.open('answers'); };
+        window.CTMSettings.summary(compactNotice); updateBar();
+      }
       bar.hidden = false;
       bar.addEventListener('click', function (event) {
         var button = event.target.closest('button');
         if (!button) return;
-        if (button.hasAttribute('data-ctm-clear-page')) clearPage();
+        if (button.hasAttribute('data-ctm-clear-page') && window.confirm(text('confirmClearPage', 'Delete all saved answers on this page?'))) clearPage();
         if (button.hasAttribute('data-ctm-clear-course') && window.confirm(text('confirmClearCourse', 'Delete all your saved answers in this course?'))) clearCourse();
         if (button.hasAttribute('data-ctm-save-toggle') && (!enabled() ||
           window.confirm(text('confirmSaveOff', 'This deletes all saved answers in this course and stops saving.')))) setEnabled(!enabled());
