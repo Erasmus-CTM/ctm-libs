@@ -26,7 +26,8 @@ Focused DOM and Quarto render tests cover identities, restoration, credit and sh
 
 Adapters may register `hasAnswer(inputs)` to distinguish learner responses from
 auxiliary data stored in their record. `flush({notify: false})` persists such data
-without emitting `ctm:answer-change` or changing the current result. Ordinary
+without emitting `ctm:answer-change` or changing the current result. A pending
+ordinary answer edit still emits its notification when flushed. Ordinary
 `changed()` and `flush()` retain their normal invalidation/notification behavior.
 Generated practice uses these options so its saved work never changes the
 original exercise's navigation credit or answered marker.

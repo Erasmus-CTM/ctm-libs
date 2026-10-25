@@ -8,14 +8,15 @@ selectors and localized practice controls.
 
 PR46 targets `ui/compact-settings-and-quiz`, so its diff contains the G2 feature
 rather than duplicating PR48. AC merges PR48 first. Then retarget PR46 to main,
-rebase onto the merged base, compare the resulting tree to the CI-tested tree,
-and rerun CI if it differs. No merge or tag is performed by this work.
+compare the resulting merged tree to the CI-tested tree, and rebase/update the
+branch and rerun CI if it differs. No merge or tag is performed by this work.
 
 The catalogue append conflict was resolved message by message, retaining both
 sets and all four UI languages. The AI client and Lua dependency changes combine
-without manual conflict resolution. The previous combined snapshot passed the
-Settings/progress/localization/generation DOM suites and Chromium fixture. The
-actual stacked head is checked again before updating package/course pins.
+without manual conflict resolution. The actual stacked sources pass the Settings/progress/generation/store DOM
+suites and Chromium fixture. Actual-page regressions check that saved answers
+are inside the shared dialog and practice saves preserve original navigation
+credit, including after reload.
 
 Course previews must install the exact stacked G2 head through the normal G4
 manifest. A compatibility-only test without publishing the shared Settings panel
