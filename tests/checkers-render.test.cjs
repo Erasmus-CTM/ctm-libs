@@ -54,6 +54,7 @@ test('the package layout: manifest, wheel, environment, API check and the page s
     'index.qmd': page(
       C.probe('required', 'return ctm.checkers.require("probe", 1)'),
       C.probe('minor', 'return ctm.checkers.require("probe", "1.0").version'),
+      C.probe('currentApi', 'return ctm.checkers.require("probe", ' + JSON.stringify(String(expected.api)) + ').version'),
       C.probe('folder', 'return ctm.checkers.folder()'),
       C.probe('wheel', 'return ctm.checkers.wheel()'),
       C.probe('environment', 'local e = ctm.checkers.environment({PYTHONPATH = "/site-packages", HOME = "/home/author"})\n'
@@ -69,6 +70,7 @@ test('the package layout: manifest, wheel, environment, API check and the page s
     const wheel = path.join(installed, expected.wheel);
     assert.deepEqual(p.required, expected);
     assert.equal(p.minor, expected.version);
+    assert.equal(p.currentApi, expected.version);
     assert.equal(p.folder, installed);
     assert.equal(p.wheel, wheel);
     assert.deepEqual(p.environment, {PYTHONPATH: wheel + ':/site-packages', CTM_CHECKERS_WHEEL: wheel, HOME: '/home/author'});
@@ -157,7 +159,8 @@ test('without ctm-checkers, or with another API level, the render stops with the
     assert.match(r.stderr, new RegExp('probe needs ctm-checkers, the checker library of CTM Assessment, which is not installed in this project\\. '
       + 'Install CTM Assessment: ' + INSTALL.replace(/[.]/g, '\\.')));
   });
-  for (const api of ['2', '"1.1"']) {
+  const [major, minor = 0] = String(manifest().api).split('.').map(Number);
+  for (const api of [String(major + 1), JSON.stringify(major + '.' + (minor + 1))]) {
     await withProject((dir) => fs.cpSync(folder, path.join(dir, '_extensions', 'ctm-checkers'), {recursive: true}), {
       '_quarto.yml': 'project:\n  type: default\n  render: [page.qmd]\nfilters: [ctm-libs, probe]\n',
       'page.qmd': page(C.probe('required', 'return ctm.checkers.require("probe", ' + api + ')')),
@@ -165,7 +168,8 @@ test('without ctm-checkers, or with another API level, the render stops with the
       const r = C.render(dir, [], {CTM_COMPONENT_DEV: '1'});
       assert.notEqual(r.status, 0);
       assert.match(r.stderr, new RegExp('probe needs ctm-checkers API ' + api.replace(/"/g, '').replace('.', '\\.') + '; .*ctm-checkers has ctm-checkers '
-        + manifest().version.replace(/\./g, '\\.') + ' \\(API 1\\)\\. Update CTM Assessment: ' + INSTALL.replace(/[.]/g, '\\.')));
+        + manifest().version.replace(/\./g, '\\.') + ' \\(API ' + String(manifest().api).replace(/\./g, '\\.')
+        + '\\)\\. Update CTM Assessment: ' + INSTALL.replace(/[.]/g, '\\.')));
     });
   }
 });

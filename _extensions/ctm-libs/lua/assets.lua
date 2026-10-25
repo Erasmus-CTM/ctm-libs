@@ -22,6 +22,8 @@ return function(ctm)
     return ctm.settings.choice("ctm-assessment", "assets", {"cdn", "local"}, {default = "cdn"})
   end
   local function packageBase(url)
+    local git, revision = url:match("^(https://cdn%.jsdelivr%.net/gh/[%w_.-]+/[%w_.-]+@([a-f0-9]+)/)")
+    if git and #revision == 40 then return git end
     return url:match("^(https://cdn%.jsdelivr%.net/npm/[^@/]+@[^/]+/)")
       or url:match("^(https://cdn%.jsdelivr%.net/npm/@[^/]+/[^@/]+@[^/]+/)")
   end
