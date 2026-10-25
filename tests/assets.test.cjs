@@ -209,3 +209,20 @@ test('local asset preflight and API 3 saved-answer registration retain all store
     assert.doesNotMatch(html,/data-__ctm-/);
   } finally {fs.rmSync(p.dir,{recursive:true,force:true});}
 });
+
+
+test('immutable Git board pins select the same CDN and local asset family', {skip: !C.hasQuarto}, () => {
+  const sha='a'.repeat(40),cdn='https://cdn.jsdelivr.net/gh/owner/runtime@'+sha+'/';
+  for(const local of [false,true]){
+    const p=project({local});
+    try{
+      const packageDir=C.installPackage(p.dir);
+      fs.writeFileSync(path.join(packageDir,'jsxgraph-pins.yml'),'jsxgraph:\n  src_jxg: '+cdn+'core.js\n  src_css: '+cdn+'core.css\n');
+      p.versions.jsxgraph=sha;
+      C.write(p.dir,{'_ctm-assets/manifest.json':JSON.stringify({v:1,versions:p.versions,files:{}})});
+      fs.appendFileSync(path.join(p.dir,p.file),C.probe('git','return {url=ctm.assets.url("jsxgraph", "core.js")}'));
+      const r=render(p.dir);assert.equal(r.status,0,r.stderr);
+      assert.equal(C.probes(C.html(p.dir,p.file)).git.url,local?'./_ctm-assets/gh/owner/runtime@'+sha+'/core.js':cdn+'core.js');
+    }finally{fs.rmSync(p.dir,{recursive:true,force:true});}
+  }
+});
