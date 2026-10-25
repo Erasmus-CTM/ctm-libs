@@ -267,12 +267,13 @@ function checkStore(source, assert) {
   auxiliary.input({fields:{x:'1'},generated:[]});ah.result({status:'correct',score:1});beforeAux=auxiliary.events.length;
   auxiliary.input({fields:{x:'1'},generated:[{question:'practice',answer:'0'}]});ah.flush({notify:false});
   ok(auxiliary.events.length===beforeAux && JSON.parse(auxiliary.local[auxiliary.store.key('ex')]).result.score===1,'auxiliary edits retain original score and do not reset navigation');
-  ah.changed();ah.flush();
+  ah.changed();var editEvents=auxiliary.events.length;ah.flush({notify:false});
+  ok(auxiliary.events.length>editEvents,'auxiliary flush does not swallow a pending ordinary answer-edit notification');
   ok(!JSON.parse(auxiliary.local[auxiliary.store.key('ex')]).result,'ordinary edits still invalidate credit');
 
   return count;
 }
 test('shared store contracts and durable quota recovery',()=>{
  const source=['ctm-layout.js','ctm-store.js'].map(name=>fs.readFileSync(path.join(__dirname,'../_extensions/ctm-libs/ui',name),'utf8')).join('\n');
- assert.equal(checkStore(source,assert.ok),89);
+ assert.equal(checkStore(source,assert.ok),90);
 });

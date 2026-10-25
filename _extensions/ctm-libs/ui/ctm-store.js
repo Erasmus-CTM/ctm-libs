@@ -297,9 +297,10 @@
       return outcome;
     }
     function flush(flushOptions) {
+      var answerEditPending = entry.timer !== null && entry.timer !== undefined;
       cancel(entry);
       var inputs = options.read();
-      if (!flushOptions || flushOptions.notify !== false) emit('ctm:answer-change', {component: options.component, id: entry.id, runtimeId: entry.runtimeId, answered: options.hasAnswer ? !!options.hasAnswer(inputs) : hasAnswer(inputs)});
+      if (answerEditPending || !flushOptions || flushOptions.notify !== false) emit('ctm:answer-change', {component: options.component, id: entry.id, runtimeId: entry.runtimeId, answered: options.hasAnswer ? !!options.hasAnswer(inputs) : hasAnswer(inputs)});
       return save(entry, inputs);
     }
     function changed() {
