@@ -175,7 +175,7 @@ async function init(cfg) {
   await rawRunPythonAsync([
     'import sys as _ctm_sys, types as _ctm_types',
     '_ctm_executor = _ctm_types.ModuleType("_ctm_executor")',
-    'exec("from pyodide.code import eval_code_async\\nasync def run(code, namespace):\\n    try:\\n        return await eval_code_async(code, namespace)\\n    except KeyboardInterrupt:\\n        raise RuntimeError(\\\"Python operation interrupted\\\") from None\\n    except BaseException as error:\\n        raise RuntimeError(str(error)) from None", _ctm_executor.__dict__)',
+    'exec("from pyodide.code import eval_code_async\\nasync def run(code, namespace):\\n    try:\\n        return await eval_code_async(code, namespace)\\n    except KeyboardInterrupt:\\n        raise RuntimeError(\\\"Python operation interrupted\\\") from None\\n    except Exception:\\n        raise\\n    except BaseException as error:\\n        raise RuntimeError(str(error)) from None", _ctm_executor.__dict__)',
     '_ctm_sys.modules["_ctm_executor"] = _ctm_executor',
     'del _ctm_sys, _ctm_types, _ctm_executor'
   ].join('\n'));
