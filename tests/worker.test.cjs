@@ -195,6 +195,10 @@ test('cross-origin isolated pages get the interrupt and input buffers; a failure
       proxy.provideInput('Ada');
       assert.equal(proxy.inputStatusBuf[0], 2);
       assert.equal(new TextDecoder().decode(proxy.inputDataBuf.slice(0, 3)), 'Ada');
+      proxy.inputStatusBuf[0] = 1;
+      proxy.interrupt();
+      assert.equal(proxy.inputStatusBuf[0], 3, 'waiting input is aborted');
+      assert.equal(proxy.interruptBuffer[0], 0, 'input abort must not deliver a second exception during EOF handling');
     }
   }
 });

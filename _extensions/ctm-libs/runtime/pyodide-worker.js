@@ -931,6 +931,15 @@ self.onmessage = function(event) {
 
       /** Graceful abort (KeyboardInterrupt) – only with SharedArrayBuffer. */
       interrupt() {
+        // Waking input already raises EOFError. A simultaneous SIGINT can
+        // arrive while Python is handling that exception and escape WebLoop.
+        // Abort the wait alone; code that catches EOF still gets the bounded
+        // hard-restart fallback from MathExerciseRuntime.stop().
+        if (this.inputStatusBuf && Atomics.compareExchange(this.inputStatusBuf, 0, 1, 3) === 1) {
+          this.clearInterrupt();
+          Atomics.notify(this.inputStatusBuf, 0, 1);
+          return;
+        }
         if (this.interruptBuffer) this.interruptBuffer[0] = 2;   // SIGINT
         this.abortInput();
       },
