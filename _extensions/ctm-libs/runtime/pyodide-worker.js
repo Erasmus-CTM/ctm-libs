@@ -226,10 +226,10 @@ async function init(cfg) {
   self._ctm_emit_learner = text => emitOutput(text, 'stdout');
   await pyodide.runPythonAsync([
     'import builtins as _ctm_input_builtins',
-    'def _ctm_input(prompt="", _original=_ctm_input_builtins.input):',
+    'def _ctm_input(prompt="", _original=_ctm_input_builtins.input, _unavailable=type("_CTMInputUnavailable", (BaseException,), {})):',
     '    from js import _ctm_set_input_prompt, _ctm_input_available',
     '    if not _ctm_input_available():',
-    '        raise RuntimeError(' + JSON.stringify(msg.inputUnavailable || 'Interactive input needs a secure, cross-origin isolated server and a learner run.') + ')',
+    '        raise _unavailable(' + JSON.stringify('ctm-input-unavailable: ' + (msg.inputUnavailable || 'Interactive input needs a secure, cross-origin isolated server and a learner run.')) + ')',
     '    _ctm_set_input_prompt(str(prompt))',
     '    return _original("")',
     '_ctm_input_builtins.input = _ctm_input',
@@ -660,7 +660,7 @@ async function handleMessage(msg) {
       case "beginOperation":
         operationID = msg.operationID; inputAllowed = msg.allowInput === true; learnerPhase = true; resetOutput(); break;
       case "endOperation":
-        streamOutstanding = false; flushOutput(); operationID = null; changed(); break;
+        streamOutstanding = false; flushOutput(); operationID = null; learnerPhase = true; inputAllowed = true; changed(); break;
       case "setInterrupt":
         pyodide.setInterruptBuffer(msg.buffer);
         break;
@@ -687,7 +687,9 @@ async function handleMessage(msg) {
     assertMessageBudget(value);
     self.postMessage({ type: "result", id: msg.id, value: value });
   } catch (err) {
-    self.postMessage({ type: "error", id: msg.id, message: String((err && err.message) || err) });
+    const message = String((err && err.message) || err).slice(0, 16384);
+    self.postMessage({ type: "error", id: msg.id, message,
+      ...(message.includes('ctm-input-unavailable:') ? {code: 'input-unavailable'} : {}) });
   }
 }
 
@@ -843,8 +845,10 @@ self.onmessage = function(event) {
       if (gone) return;
       const msg = event.data;
       if (msg.type === 'streamBatch') {
-        if (owner && msg.operationID === owner.id) {
+        if (owner && !owner.cancelled && msg.operationID === owner.id) {
           for (const entry of msg.entries) owner.handlers.onStream?.(entry.message, entry.type);
+        } else if (!owner && msg.operationID == null) {
+          for (const entry of msg.entries) proxy.onStream?.(entry.message, entry.type);
         }
         worker.postMessage({type: 'streamAck', operationID: msg.operationID});
         return;
@@ -854,7 +858,7 @@ self.onmessage = function(event) {
       if (msg.type === "streamStdout") { proxy.onStream?.(msg.text, "stdout"); return; }
       if (msg.type === "streamStderr") { proxy.onStream?.(msg.text, "stderr"); return; }
       if (msg.type === "inputRequired") {
-        if (owner && msg.operationID === owner.id) owner.handlers.onInputRequired?.(msg.prompt ?? "");
+        if (owner && !owner.cancelled && msg.operationID === owner.id) owner.handlers.onInputRequired?.(msg.prompt ?? "");
         else if (!msg.operationID) proxy.onInputRequired?.(msg.prompt ?? "");
         return;
       }
@@ -862,7 +866,9 @@ self.onmessage = function(event) {
       if (!entry) return;
       pending.delete(msg.id);
       if (msg.type === "error") {
-        entry.reject(new Error(msg.message));
+        const error = new Error(msg.message);
+        if (msg.code) error.code = msg.code;
+        entry.reject(error);
       } else {
         entry.resolve(msg.value);
       }
@@ -890,6 +896,7 @@ self.onmessage = function(event) {
     // globals.set may be called without await before runPythonAsync).
     const proxy = {
       isWorkerProxy: true,
+      cancelOperation() { if (owner) owner.cancelled = true; },
       async operation(run, handlers = {}) {
         if (owner) throw new Error('Nested Python operation');
         owner = {id: ++operationSequence, handlers};
@@ -1060,11 +1067,12 @@ self.onmessage = function(event) {
     const text = root.CTMLocales ? root.CTMLocales.table('common', root.document?.documentElement?.lang || 'en') : {};
     let lamp = null, note = null, stopButton = null, retryButton = null, timer = null;
     function status(message) {
-      if (!root.document?.body) return;
+      if (!root.document?.body || options.showStatus === false) return;
       if (!lamp) {
-        lamp = document.createElement('div'); lamp.className = 'ctm-python-status';
+        const existing = options.onStatus && document.getElementById('qpyodide-status-right');
+        lamp = existing || document.createElement('div'); lamp.className = 'ctm-python-status';
         lamp.setAttribute('role', 'status'); lamp.setAttribute('aria-live', 'polite');
-        note = document.createElement('span');
+        note = existing ? null : document.createElement('span');
         stopButton = document.createElement('button'); stopButton.type = 'button'; stopButton.hidden = true;
         stopButton.textContent = text.stop || 'Stop';
         stopButton.onclick = () => {
@@ -1074,9 +1082,14 @@ self.onmessage = function(event) {
         retryButton = document.createElement('button'); retryButton.type = 'button'; retryButton.hidden = true;
         retryButton.textContent = text.retry || 'Retry';
         retryButton.onclick = () => { pageStarted = null; retryButton.hidden = true; page(options); };
-        lamp.append(note, ' ', stopButton, ' ', retryButton); document.body.prepend(lamp);
+        if (note) lamp.append(note, ' ');
+        lamp.append(stopButton, ' ', retryButton);
+        if (!existing) {
+          const header = document.getElementById('title-block-header');
+          if (header) header.appendChild(lamp); else document.body.prepend(lamp);
+        }
       }
-      note.textContent = message;
+      if (note) note.textContent = message;
     }
     const configured = {...options, publish: true};
     const callback = options.onRestart;

@@ -48,13 +48,14 @@
 
   // Standalone pages share the existing bounded COI reload protocol. The
   // IDE has its own coordinator; never compete with it or reload edited work.
-  if (typeof document !== 'undefined' && typeof root.addEventListener === 'function') {
+  if (typeof document !== 'undefined' && typeof root.addEventListener === 'function' && !root.__ctmStandaloneCoiRegistered) {
+    root.__ctmStandaloneCoiRegistered = true;
     var touched = false;
     ['pointerdown', 'keydown', 'input'].forEach(function (name) {
       root.addEventListener(name, function () { touched = true; }, {capture: true});
     });
     root.addEventListener('coi-sw-ready', function () {
-      whenInitialUIReady().then(function () {
+      (root.MathExerciseRuntime?.whenInitialUIReady || whenInitialUIReady)().then(function () {
         if (root.qpyodideCoiSettled || root.crossOriginIsolated || touched || !root.location) return;
         try { root.sessionStorage.setItem('qpyodide-coi-reload-pending', '1'); }
         catch (error) { return; }  // blocked storage: no unbounded reload
@@ -459,7 +460,7 @@
   // gone), nothing more is sent to it: no cleanup and no repeat, and the
   // later calls and installs for a gone runtime, also those waiting behind
   // this one, fail at once.
-  function callCheckers(py, name, request, payload) {
+  function callCheckers(py, name, request, payload, handlers) {
     var text = typeof request === 'string' ? request : JSON.stringify(request);
     var epoch = stopCount({runtime: py});
     async function run() {
@@ -488,7 +489,7 @@
         if (done) delete done[key];
       }
     }
-    return transaction(py, function () { return checkersQueue(py, run); });
+    return transaction(py, function () { return checkersQueue(py, run); }, handlers);
   }
 
   // One logical transaction queue per interpreter, shared by all consumers.
@@ -503,6 +504,10 @@
         var error = new Error('Python operation was cancelled.'); error.cancelled = true; throw error;
       }
       var execute = async function () {
+        if (stopCount({runtime: py}) !== epoch) {
+          var cancelled = new Error('Python operation was cancelled.'); cancelled.cancelled = true; throw cancelled;
+        }
+        if (handlers && handlers.onStart) handlers.onStart();
         var result = await run();
         if (stopCount({runtime: py}) !== epoch) {
           var error = new Error('Python operation was cancelled.'); error.cancelled = true; throw error;
@@ -516,8 +521,8 @@
     return current;
   }
 
-  // A runtime that can be stopped while it runs (pyodide-interaktiv's worker):
-  // Python on the page itself cannot be interrupted, only reloaded.
+  // Standalone and IDE pages receive a stoppable CTMWorker proxy. Native
+  // interpreter objects used inside a worker are not page-side Stop handles.
   function selectedRuntime(options) {
     return options && Object.prototype.hasOwnProperty.call(options, 'runtime') ? options.runtime : root.mainPyodide;
   }
@@ -533,6 +538,7 @@
     if (stopping.has(py)) return stopping.get(py);
     if (!options || !Object.prototype.hasOwnProperty.call(options, 'runtime')) stops++;
     runtimeStops.set(py, (runtimeStops.get(py) || 0) + 1);
+    if (typeof py.cancelOperation === 'function') py.cancelOperation();
     var message = reason || 'Stopped by the learner';
     function restart() { markGone(py, message); return py.restart(message); }
     if (!root.crossOriginIsolated || !py.interruptBuffer || typeof py.interrupt !== 'function' || typeof py.whenIdle !== 'function') {

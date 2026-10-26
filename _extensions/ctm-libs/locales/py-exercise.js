@@ -3,6 +3,7 @@ CTMLocales.add("py-exercise",
 /*BEGIN-JSON*/
 {"$languages": ["en", "de", "nb"],
  "en": {
+  "inputUnavailable": {"$ref":"common.inputUnavailable"},
   "inputLabel": "Python input",
   "submitInput": "Submit",
   "inputTooLong": {"$ref":"common.inputTooLong"},
@@ -51,6 +52,7 @@ CTMLocales.add("py-exercise",
   "noscript": "Please enable JavaScript to load the interactive exercise."
  },
  "de": {
+  "inputUnavailable": {"$ref":"common.inputUnavailable"},
   "inputLabel": "Python-Eingabe",
   "submitInput": "Senden",
   "inputTooLong": {"$ref":"common.inputTooLong"},
@@ -99,6 +101,7 @@ CTMLocales.add("py-exercise",
   "noscript": "Bitte JavaScript aktivieren, um die interaktive Aufgabe zu laden."
  },
  "nb": {
+  "inputUnavailable": {"$ref":"common.inputUnavailable"},
   "inputLabel": "Python-inndata",
   "submitInput": "Send",
   "inputTooLong": {"$ref":"common.inputTooLong"},

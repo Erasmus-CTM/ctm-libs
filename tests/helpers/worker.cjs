@@ -8,7 +8,7 @@ const FILE = path.join(C.library, 'runtime', 'pyodide-worker.js');
 // The proxy's documented keys (docs/api.md), without a plugin's commands.
 const PROXY_KEYS = ['isWorkerProxy', 'interruptBuffer', 'inputStatusBuf', 'inputDataBuf', 'onStream', 'onInputRequired',
   'runPythonAsync', 'loadPackagesFromImports', 'loadPackage', 'toPy', 'globals', 'interrupt', 'clearInterrupt',
-  'abortInput', 'provideInput', 'restart', 'whenSetup', 'retrySetup', 'whenIdle', 'terminate', 'operation'];
+  'abortInput', 'provideInput', 'restart', 'whenSetup', 'retrySetup', 'whenIdle', 'terminate', 'operation', 'cancelOperation'];
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 

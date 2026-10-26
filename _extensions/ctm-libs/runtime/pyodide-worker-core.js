@@ -194,10 +194,10 @@ async function init(cfg) {
   self._ctm_emit_learner = text => emitOutput(text, 'stdout');
   await pyodide.runPythonAsync([
     'import builtins as _ctm_input_builtins',
-    'def _ctm_input(prompt="", _original=_ctm_input_builtins.input):',
+    'def _ctm_input(prompt="", _original=_ctm_input_builtins.input, _unavailable=type("_CTMInputUnavailable", (BaseException,), {})):',
     '    from js import _ctm_set_input_prompt, _ctm_input_available',
     '    if not _ctm_input_available():',
-    '        raise RuntimeError(' + JSON.stringify(msg.inputUnavailable || 'Interactive input needs a secure, cross-origin isolated server and a learner run.') + ')',
+    '        raise _unavailable(' + JSON.stringify('ctm-input-unavailable: ' + (msg.inputUnavailable || 'Interactive input needs a secure, cross-origin isolated server and a learner run.')) + ')',
     '    _ctm_set_input_prompt(str(prompt))',
     '    return _original("")',
     '_ctm_input_builtins.input = _ctm_input',
@@ -628,7 +628,7 @@ async function handleMessage(msg) {
       case "beginOperation":
         operationID = msg.operationID; inputAllowed = msg.allowInput === true; learnerPhase = true; resetOutput(); break;
       case "endOperation":
-        streamOutstanding = false; flushOutput(); operationID = null; changed(); break;
+        streamOutstanding = false; flushOutput(); operationID = null; learnerPhase = true; inputAllowed = true; changed(); break;
       case "setInterrupt":
         pyodide.setInterruptBuffer(msg.buffer);
         break;
@@ -655,7 +655,9 @@ async function handleMessage(msg) {
     assertMessageBudget(value);
     self.postMessage({ type: "result", id: msg.id, value: value });
   } catch (err) {
-    self.postMessage({ type: "error", id: msg.id, message: String((err && err.message) || err) });
+    const message = String((err && err.message) || err).slice(0, 16384);
+    self.postMessage({ type: "error", id: msg.id, message,
+      ...(message.includes('ctm-input-unavailable:') ? {code: 'input-unavailable'} : {}) });
   }
 }
 

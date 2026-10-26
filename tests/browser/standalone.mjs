@@ -4,12 +4,19 @@ import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
+import vm from 'node:vm';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const runtime = path.join(root, '_extensions/ctm-libs/runtime');
 const dist = process.env.PYODIDE_DIST || path.join(root, 'node_modules/pyodide');
 const report = [];
+let exerciseSource=null;
+if(process.env.P13_PY_EXERCISE) {
+  const source=fs.readFileSync(process.env.P13_PY_EXERCISE,'utf8');
+  const body=source.match(/var MODULE_PY = \[\n([\s\S]*?)\n  \]\.join\('\\n'\);/)[1];
+  exerciseSource=vm.runInNewContext('['+body+'].join("\\n")');
+}
 const server = http.createServer((req,res) => {
   const url = new URL(req.url, 'http://local');
   const isolated = url.pathname.startsWith('/isolated/');
@@ -79,6 +86,30 @@ try {
         await py.loadPackagesFromImports(code);return py.runPythonAsync(code);
       }));
       assert.equal(answer,42); report.push({label,numpyImportMs:Date.now()-start,result:answer});
+    }
+    if (exerciseSource) {
+      const result=await page.evaluate(async source=>{
+        const seen=[];const R=MathExerciseRuntime;
+        await R.ensureGuard(py);
+        const run=async(code,tests,handlers={})=>R.transaction(py,async()=>{
+          await py.loadPackagesFromImports(code);
+          await R.installModule(py,'_ctm_py_exercise',source);
+          await py.globals.set('_ctm_py_request',JSON.stringify({function:'run',args:[code,tests,{syntax_error:'Syntax: {}',test_error:'Error: {}',assertion_failed:'Failed'}]}));
+          return JSON.parse(await py.runPythonAsync('__import__("_ctm_py_exercise").call(globals())'));
+        },handlers);
+        const data=await run('print("learner")','print("TEACHER_ONLY")\nassert True',{onStream:text=>seen.push(text)});
+        let overflow,unsupported;
+        try{await run('print("x" * 262145)','assert False');}catch(e){overflow=String(e);}
+        if(!crossOriginIsolated)try{await run('input("Name?")','assert False',{onInputRequired(){}});}catch(e){unsupported=e.code;}
+        const plot=await run('import matplotlib.pyplot as plt\nplt.plot([0,1],[0,1])\nplt.show()','assert True');
+        const privatePlot=await run('import matplotlib.pyplot as plt','plt.plot([0,1],[1,0])\nplt.show()');
+        return {stdout:data.stdout,tests:data.tests,stream:seen.join(''),overflow,unsupported,plotError:plot.student_error,images:plot.images?.length||0,privateImages:privatePlot.images?.length||0};
+      },exerciseSource);
+      assert.equal(result.stdout,'learner\n');assert.equal(result.stream,'learner\n');
+      assert.ok(result.tests.every(x=>x.passed));assert.match(result.overflow,/capture budget/);
+      if(label==='plainLAN')assert.equal(result.unsupported,'input-unavailable');
+      assert.equal(result.images,1,JSON.stringify(result));assert.equal(result.privateImages,0);
+      report.push({label,exercise:result});
     }
     assert.deepEqual(external,[]);assert.deepEqual(errors,[]);
     await context.close();
