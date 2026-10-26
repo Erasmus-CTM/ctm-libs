@@ -349,7 +349,7 @@ async function isolationScenario() {
       proxy.interrupt();
       const stopped = await looping;
       proxy.clearInterrupt();
-      return {answer, prompt: window.__prompt, stopped: /KeyboardInterrupt/.test(stopped), after: await proxy.runPythonAsync('2 + 2')};
+      return {answer, prompt: window.__prompt, stopped: /RuntimeError: Python operation interrupted/.test(stopped), after: await proxy.runPythonAsync('2 + 2')};
     });
     assert.deepEqual(result, {answer: 'Ada', prompt: 'Name? ', stopped: true, after: 4});
     report.push('isolation: coi-serviceworker.js, input() with its prompt, Stop by interrupt');
