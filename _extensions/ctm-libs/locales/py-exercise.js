@@ -3,6 +3,10 @@ CTMLocales.add("py-exercise",
 /*BEGIN-JSON*/
 {"$languages": ["en", "de", "nb"],
  "en": {
+  "inputLabel": "Python input",
+  "submitInput": "Submit",
+  "inputTooLong": {"$ref":"common.inputTooLong"},
+  "plotLabel": "Python plot",
   "btnCheck": "<i class=\"fa-solid fa-check\"></i> Check",
   "btnCheckTitle": "Run checks (Shift+Enter)",
   "btnReset": "<i class=\"fa-solid fa-arrows-rotate\"></i> Reset",
@@ -47,6 +51,10 @@ CTMLocales.add("py-exercise",
   "noscript": "Please enable JavaScript to load the interactive exercise."
  },
  "de": {
+  "inputLabel": "Python-Eingabe",
+  "submitInput": "Senden",
+  "inputTooLong": {"$ref":"common.inputTooLong"},
+  "plotLabel": "Python-Diagramm",
   "btnCheck": "<i class=\"fa-solid fa-check\"></i> Überprüfen",
   "btnCheckTitle": "Code prüfen (Shift+Enter)",
   "btnReset": "<i class=\"fa-solid fa-arrows-rotate\"></i> Zurücksetzen",
@@ -91,6 +99,10 @@ CTMLocales.add("py-exercise",
   "noscript": "Bitte JavaScript aktivieren, um die interaktive Aufgabe zu laden."
  },
  "nb": {
+  "inputLabel": "Python-inndata",
+  "submitInput": "Send",
+  "inputTooLong": {"$ref":"common.inputTooLong"},
+  "plotLabel": "Python-figur",
   "btnCheck": "<i class=\"fa-solid fa-check\"></i> Sjekk",
   "btnCheckTitle": "Kjør sjekkene (Shift+Enter)",
   "btnReset": "<i class=\"fa-solid fa-arrows-rotate\"></i> Tilbakestill",

@@ -107,7 +107,7 @@ function cdnServer() {
 function pageServer() {
   return http.createServer((req, res) => {
     const [, mode, name = 'index.html'] = new URL(req.url, 'http://x').pathname.split('/');
-    const files = {'index.html': null, 'pyodide-worker.js': path.join(LIB, 'pyodide-worker.js'), 'coi-serviceworker.js': path.join(LIB, 'coi-serviceworker.js')};
+    const files = {'index.html': null, 'pyodide-worker.js': path.join(LIB, 'pyodide-worker.js'), 'pyodide-worker-core.js': path.join(LIB, 'pyodide-worker-core.js'), 'coi-serviceworker.js': path.join(LIB, 'coi-serviceworker.js')};
     if (!['h', 's'].includes(mode) || !(name in files)) { res.writeHead(404); res.end(); return; }
     const headers = {'Content-Type': name.endsWith('.js') ? 'text/javascript' : 'text/html', 'Cache-Control': 'no-store'};
     if (mode === 'h') { headers['Cross-Origin-Opener-Policy'] = 'same-origin'; headers['Cross-Origin-Embedder-Policy'] = 'credentialless'; }

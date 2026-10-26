@@ -908,3 +908,30 @@ for explicit lower-level integrations. Duplicate diagram references are included
 once. Message replies must match the iframe window, protocol, version, request
 ID and assessment ID. In copy mode, the UI exposes image previews and download
 links so the learner can attach them in their chat.
+
+### P13 page worker
+
+`CTMWorker.page(options)` starts or returns the single published page worker;
+private backends retain `CTMWorker.start({publish:false, ...})`. Standalone
+`ensurePyodide()` requires this dependency and never loads Python on the page.
+The default entry is the self-hosted `pyodide-worker-core.js` beside its loader.
+`pluginURLs` are self-hosted modules exporting a worker plugin factory. Legacy
+source plugins retain the compatibility blob path. Generate/check the static
+entry with `node scripts/sync-worker-core.cjs [--check]`.
+
+`MathExerciseRuntime.transaction(py, callback, handlers)` owns an entire Python
+operation, including its imports, globals, guard and cleanup. All supported
+consumers use it; callbacks must not nest transactions. Optional `onStream` and
+`onInputRequired` handlers belong to that operation only. The worker proxy's
+`operation` method is the transport primitive. Setup installs yield while an
+operation owns Python. Queued operations cancelled by Stop never execute or
+replay. A restart invalidates every old proxy; obtain the current one again.
+
+Output is limited to 256 KiB per operation and sent with one acknowledged batch
+in flight. Python exercise semantic capture has a separate write-time budget;
+resource overflow cannot be graded against truncated data. Input is UTF-8 and
+must fit its 4096-byte shared buffer including its terminator; oversized/null
+input is rejected. Input requires isolation and an owned learner input handler.
+Graceful Stop has a two-second deadline before hard restart, including programs
+that catch KeyboardInterrupt. Python's private executor catches BaseException
+before it can escape WebLoop as an uncaught worker event.

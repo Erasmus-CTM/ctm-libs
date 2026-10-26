@@ -31,7 +31,11 @@ for (const [namespace, languages] of [['math-exercise', ['en', 'de', 'nb']], ['p
           assert.equal(typeof table[key], 'function', lang + '.' + key);
           for (const [args, output] of value.$calls) assert.equal(table[key](...args), output, lang + '.' + key + '(' + JSON.stringify(args).slice(1, -1) + ')');
         } else {
-          const expected = plain(value);
+          let expected = plain(value);
+          // P13: a graceful Stop need not restart; the reset notice is separate.
+          if ((namespace === 'math-exercise' && key === 'errStopped') || (namespace === 'py-exercise' && key === 'stopped')) {
+            expected = {en:'Stopped.',de:'Abgebrochen.',nb:'Avbrutt.'}[lang];
+          }
           // Keep the historical golden unchanged; input examples are plain CAS syntax.
           if (namespace === 'math-exercise' && key === 'legend') expected[0][1] =
             'x^2 ' + {en:'or',de:'oder',nb:'eller'}[lang] + ' x**2';

@@ -311,3 +311,9 @@ locator). Course authors install CTM Assessment only.
   strings from `locales/feedback.js` and keeps every version in step;
   `scripts/check-locales.py` checks the catalogues.
 - Package `@erasmus-ctm/ctm-libs`.
+
+- P13: standalone math/Python pages use the shared self-hosted worker, with
+  cross-component transactions, bounded owned output, explicit input capability,
+  shared status/Retry and Stop/restart. Stop cancels queued work without replay.
+  A graceful stop can keep variables, so its generic message no longer asserts
+  a restart; the worker broker reports a hard restart/reset separately.

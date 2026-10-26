@@ -46,6 +46,23 @@
     return initialUIReady;
   }
 
+  // Standalone pages share the existing bounded COI reload protocol. The
+  // IDE has its own coordinator; never compete with it or reload edited work.
+  if (typeof document !== 'undefined' && typeof root.addEventListener === 'function') {
+    var touched = false;
+    ['pointerdown', 'keydown', 'input'].forEach(function (name) {
+      root.addEventListener(name, function () { touched = true; }, {capture: true});
+    });
+    root.addEventListener('coi-sw-ready', function () {
+      whenInitialUIReady().then(function () {
+        if (root.qpyodideCoiSettled || root.crossOriginIsolated || touched || !root.location) return;
+        try { root.sessionStorage.setItem('qpyodide-coi-reload-pending', '1'); }
+        catch (error) { return; }  // blocked storage: no unbounded reload
+        root.location.reload();
+      }).catch(function (error) { console.error('CTM: cross-origin isolation reload failed', error); });
+    });
+  }
+
   // Preserve an already-loaded runtime's live state; add only the readiness
   // contract when an older component copy did not provide it.
   if (root.MathExerciseRuntime && typeof root.MathExerciseRuntime.ensureCheckers === 'function') {
@@ -145,6 +162,15 @@
     if (typeof existing !== 'undefined') {
       root.mainPyodide = await withLoadLimit(existing);
       return root.mainPyodide;
+    }
+
+    // P13: document consumers always use the page worker. Worker/native callers
+    // below still initialize Pyodide locally; never spawn recursively.
+    if (typeof document !== 'undefined') {
+      if (!root.CTMWorker || typeof root.CTMWorker.page !== 'function') {
+        throw new Error('The Python worker dependency is missing. Reinstall CTM Assessment.');
+      }
+      return withLoadLimit(root.CTMWorker.page({indexURL: selectedIndexURL()}));
     }
 
     // Share the in-flight initialization with all consumers on this page or
@@ -303,7 +329,11 @@
   }
   if (typeof root.addEventListener === 'function') {
     root.addEventListener('qpyodide-runtime-restart', function (event) {
-      if (event.detail && event.detail.proxy === root.mainPyodide) markGone(event.detail.proxy);
+      if (event.detail && event.detail.proxy === root.mainPyodide) {
+        var py = event.detail.proxy;
+        if (!gone.has(py)) { stops++; runtimeStops.set(py, (runtimeStops.get(py) || 0) + 1); }
+        markGone(py);
+      }
     });
   }
 
@@ -376,7 +406,9 @@
     var failure = gone && gone.get(py);
     if (failure) return Promise.reject(failure);
     return once(py, checkersKey(checkers), function () {
-      return checkersQueue(py, function () { return installCheckers(py, checkers); });
+      return transaction(py, function () {
+        return checkersQueue(py, function () { return installCheckers(py, checkers); });
+      });
     });
   }
 
@@ -456,7 +488,32 @@
         if (done) delete done[key];
       }
     }
-    return checkersQueue(py, run);
+    return transaction(py, function () { return checkersQueue(py, run); });
+  }
+
+  // One logical transaction queue per interpreter, shared by all consumers.
+  // A stopped operation never enters a replacement interpreter or runs later.
+  var transactions = new WeakMap();
+  function transaction(py, run, handlers) {
+    var epoch = stopCount({runtime: py});
+    var previous = transactions.get(py) || Promise.resolve();
+    var current = previous.catch(function () {}).then(async function () {
+      if (gone && gone.has(py)) throw gone.get(py);
+      if (stopCount({runtime: py}) !== epoch) {
+        var error = new Error('Python operation was cancelled.'); error.cancelled = true; throw error;
+      }
+      var execute = async function () {
+        var result = await run();
+        if (stopCount({runtime: py}) !== epoch) {
+          var error = new Error('Python operation was cancelled.'); error.cancelled = true; throw error;
+        }
+        return result;
+      };
+      return py.operation ? py.operation(execute, handlers) : execute();
+    });
+    transactions.set(py, current);
+    current.finally(function () { if (transactions.get(py) === current) transactions.delete(py); }).catch(function () {});
+    return current;
   }
 
   // A runtime that can be stopped while it runs (pyodide-interaktiv's worker):
@@ -525,6 +582,7 @@
     ensureGuard: ensureGuard,
     ensureCheckers: ensureCheckers,
     callCheckers: callCheckers,
+    transaction: transaction,
     canStop: canStop,
     stop: stop,
     stopCount: stopCount,

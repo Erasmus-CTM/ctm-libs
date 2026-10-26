@@ -52,7 +52,7 @@ test('a plugin\'s stage-1 Python runs once the interpreter is ready; setPrompt r
   status[0] = 3;  // aborted before the wait: Atomics.wait returns at once
   w.context.Atomics = {store() {}, wait() {}, load: () => 3};
   assert.equal(w.context.stdin(), null);
-  assert.deepEqual(w.messages.find(m => m.type === 'inputRequired'), {type: 'inputRequired', prompt: 'Name? '});
+  assert.deepEqual(w.messages.find(m => m.type === 'inputRequired'), {type: 'inputRequired', prompt: 'Name? ', operationID: null});
 });
 
 test('the main-thread proxy: the documented keys, the globals it publishes, the plugin\'s commands', async () => {

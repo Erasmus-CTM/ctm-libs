@@ -8,7 +8,7 @@ const FILE = path.join(C.library, 'runtime', 'pyodide-worker.js');
 // The proxy's documented keys (docs/api.md), without a plugin's commands.
 const PROXY_KEYS = ['isWorkerProxy', 'interruptBuffer', 'inputStatusBuf', 'inputDataBuf', 'onStream', 'onInputRequired',
   'runPythonAsync', 'loadPackagesFromImports', 'loadPackage', 'toPy', 'globals', 'interrupt', 'clearInterrupt',
-  'abortInput', 'provideInput', 'restart', 'whenSetup', 'retrySetup', 'whenIdle', 'terminate'];
+  'abortInput', 'provideInput', 'restart', 'whenSetup', 'retrySetup', 'whenIdle', 'terminate', 'operation'];
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
@@ -56,7 +56,7 @@ function workerContext({plugin = '', pyodide = () => ({}), globals = {}} = {}) {
   const messages = [];
   const ctx = {};
   const context = vm.createContext({
-    console, Promise, Error, Object, Array, JSON, Math, Map, Set, Uint8Array, Int32Array, TextDecoder, TextEncoder, Atomics,
+    console, Promise, Error, Object, Array, JSON, Math, Map, Set, ArrayBuffer, Uint8Array, Int32Array, TextDecoder, TextEncoder, Atomics,
     setTimeout, clearTimeout, performance,
     self: {postMessage: message => messages.push(structuredClone(message))},
     ...globals,
@@ -76,7 +76,17 @@ function workerContext({plugin = '', pyodide = () => ({}), globals = {}} = {}) {
           pyimport: () => ({install: async () => {}, destroy() {}}),
           code: {find_imports: () => ({toJs: () => [], destroy() {}})},
         };
-        return Object.assign(fake, pyodide(ctx, fake));
+        Object.assign(fake, pyodide(ctx, fake));
+        // Emulate the retained private executor callable. Production behavior
+        // (including KeyboardInterrupt) is exercised by standalone.mjs.
+        const originalRun = fake.runPythonAsync.bind(fake), originalImport = fake.pyimport.bind(fake);
+        const run = code => {
+          if (code.includes('_ctm_types.ModuleType("_ctm_executor")') || code.startsWith('import builtins as _ctm_input_builtins')) return undefined;
+          return originalRun(code);
+        };
+        fake.runPythonAsync = run;
+        fake.pyimport = name => name === '_ctm_executor' ? {run, destroy() {}} : originalImport(name);
+        return fake;
       },
     }),
   });
