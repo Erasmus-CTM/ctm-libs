@@ -1131,6 +1131,9 @@ self.onmessage = function(event) {
       if (message) { status(message); options.onStatus?.(message); }
     });
     function follow(started, restarted) {
+      // A replacement that fails before Ready has no usable proxy. Never
+      // retry through the previous proxy's cached replacement promise.
+      pageProxy = null;
       started.then(proxy => { pageProxy = proxy; status(text.pythonReady || 'Python ready.'); }, () => {
         status(text.pythonFailed || 'Python failed.'); if (retryButton) retryButton.hidden = false;
       });
