@@ -153,7 +153,12 @@ CTMLocales.add("ctm-stack",
       "$args": [
         "reason"
       ]
-    }
+    },
+    "newVariant": "New variant",
+    "unapprovedVariant": "Not approved",
+    "variantProposal": "Proposed variant",
+    "confirmNewVariant": "Replace your filled answers with a new variant?",
+    "savedVariantUnavailable": "This saved variant is no longer available. Your previous answers are shown below. Choose a new variant to continue."
   },
   "nb": {
     "variantLabel": "Variant ",
@@ -297,7 +302,12 @@ CTMLocales.add("ctm-stack",
       "$args": [
         "reason"
       ]
-    }
+    },
+    "newVariant": "Ny variant",
+    "unapprovedVariant": "Ikke godkjent",
+    "variantProposal": "Foreslått variant",
+    "confirmNewVariant": "Erstatt svarene du har fylt ut med en ny variant?",
+    "savedVariantUnavailable": "Den lagrede varianten er ikke lenger tilgjengelig. De tidligere svarene dine vises nedenfor. Velg en ny variant for å fortsette."
   },
   "nn": {
     "variantLabel": "Variant ",
@@ -441,7 +451,12 @@ CTMLocales.add("ctm-stack",
       "$args": [
         "reason"
       ]
-    }
+    },
+    "newVariant": "Ny variant",
+    "unapprovedVariant": "Ikkje godkjend",
+    "variantProposal": "Føreslått variant",
+    "confirmNewVariant": "Byt ut svara du har fylt ut med ein ny variant?",
+    "savedVariantUnavailable": "Den lagra varianten er ikkje lenger tilgjengeleg. Dei tidlegare svara dine er viste nedanfor. Vel ein ny variant for å halde fram."
   },
   "de": {
     "variantLabel": "Variante ",
@@ -585,7 +600,12 @@ CTMLocales.add("ctm-stack",
       "$args": [
         "reason"
       ]
-    }
+    },
+    "newVariant": "Neue Variante",
+    "unapprovedVariant": "Nicht freigegeben",
+    "variantProposal": "Vorgeschlagene Variante",
+    "confirmNewVariant": "Die ausgefüllten Antworten durch eine neue Variante ersetzen?",
+    "savedVariantUnavailable": "Diese gespeicherte Variante ist nicht mehr verfügbar. Ihre bisherigen Antworten stehen unten. Wählen Sie eine neue Variante, um fortzufahren."
   },
   "sv": {
     "variantLabel": "Variant ",
@@ -729,7 +749,12 @@ CTMLocales.add("ctm-stack",
       "$args": [
         "reason"
       ]
-    }
+    },
+    "newVariant": "Ny variant",
+    "unapprovedVariant": "Inte godkänd",
+    "variantProposal": "Föreslagen variant",
+    "confirmNewVariant": "Ersätt dina ifyllda svar med en ny variant?",
+    "savedVariantUnavailable": "Den sparade varianten är inte längre tillgänglig. Dina tidigare svar visas nedan. Välj en ny variant för att fortsätta."
   },
   "da": {
     "variantLabel": "Variant ",
@@ -873,7 +898,12 @@ CTMLocales.add("ctm-stack",
       "$args": [
         "reason"
       ]
-    }
+    },
+    "newVariant": "Ny variant",
+    "unapprovedVariant": "Ikke godkendt",
+    "variantProposal": "Foreslået variant",
+    "confirmNewVariant": "Erstat dine udfyldte svar med en ny variant?",
+    "savedVariantUnavailable": "Den gemte variant er ikke længere tilgængelig. Dine tidligere svar vises nedenfor. Vælg en ny variant for at fortsætte."
   }
 }
 /*END-JSON*/
