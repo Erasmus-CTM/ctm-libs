@@ -817,6 +817,7 @@ self.onmessage = function(event) {
       notifyIdle();
       setup?.reject(error);
       releaseBlob();
+      if (error.workerFailed && !error.restarted) options.onFailure?.(error, proxy);
     }
     function rpc(type, payload = {}) {
       if (gone) return Promise.reject(gone);
@@ -1090,7 +1091,14 @@ self.onmessage = function(event) {
         };
         retryButton = document.createElement('button'); retryButton.type = 'button'; retryButton.hidden = true;
         retryButton.textContent = text.retry || 'Retry';
-        retryButton.onclick = () => { pageStarted = null; retryButton.hidden = true; page(options); };
+        retryButton.onclick = () => {
+          retryButton.hidden = true;
+          if (pageProxy) { pageProxy.restart(text.pythonRestarting); return; }
+          const again = pageStarted = start(configured);
+          status(text.pythonLoading || 'Loading Python…');
+          follow(again, false);
+          callback?.(again);
+        };
         if (note) lamp.append(note, ' ');
         lamp.append(stopButton, ' ', retryButton);
         if (!existing) {
@@ -1110,6 +1118,12 @@ self.onmessage = function(event) {
       options.onBusy?.(busy);
     };
     let pageProxy = null;
+    configured.onFailure = (error, proxy) => {
+      pageProxy = proxy;
+      status(text.pythonFailed || 'Python failed.');
+      if (retryButton) retryButton.hidden = false;
+      options.onFailure?.(error);
+    };
     root.addEventListener?.('ctm-python-stop-state', event => {
       if (event.detail?.proxy !== pageProxy) return;
       const state = event.detail.state;
@@ -1126,7 +1140,6 @@ self.onmessage = function(event) {
     const started = pageStarted = start(configured);
     status(text.pythonLoading || 'Loading Python…');
     follow(started, false);
-    started.catch(() => { if (pageStarted === started) { pageStarted = null; root.qpyodideInstance = root.mainPyodide = undefined; } });
     return started;
   }
 

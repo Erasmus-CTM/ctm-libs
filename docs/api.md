@@ -927,7 +927,7 @@ consumers use it; callbacks must not nest transactions. Optional `onStream` and
 operation owns Python. Queued operations cancelled by Stop never execute or
 replay. A restart invalidates every old proxy; obtain the current one again.
 
-Output is limited to 256 KiB per operation and sent with one acknowledged batch
+Output is limited to 256 KiB and 4096 entries per operation and sent with one acknowledged batch
 in flight. Python exercise semantic capture has a separate write-time budget;
 resource overflow cannot be graded against truncated data. Input is UTF-8 and
 must fit its 4096-byte shared buffer including its terminator; oversized/null
@@ -935,3 +935,9 @@ input is rejected. Input requires isolation and an owned learner input handler.
 Graceful Stop has a two-second deadline before hard restart, including programs
 that catch KeyboardInterrupt. Python's private executor catches BaseException
 before it can escape WebLoop as an uncaught worker event.
+
+A failed page start remains shared until explicit Retry. Retry reuses its status
+controls, notifies the consumer of the new start, and uses the normal restart
+path after a fatal worker failure. `onFailure(error)` reports fatal worker
+failures so IDE controls can disable Run while keeping editing/export available.
+A normal Stop/restart is not reported as a fatal failure.
