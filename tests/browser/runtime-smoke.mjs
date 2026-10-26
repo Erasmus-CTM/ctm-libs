@@ -18,8 +18,14 @@ const server = http.createServer((request, response) => {
     response.end(runtime);
     return;
   }
+  const workerName = request.url.slice(1);
+  if (['pyodide-worker.js', 'pyodide-worker-core.js'].includes(workerName)) {
+    response.writeHead(200, {'content-type': 'text/javascript'});
+    response.end(fs.readFileSync(path.join(ROOT, '_extensions/ctm-libs/runtime', workerName)));
+    return;
+  }
   response.writeHead(200, {'content-type': 'text/html'});
-  response.end('<!doctype html><html><head><script src="/runtime.js"></script></head><body><p>runtime</p></body></html>');
+  response.end('<!doctype html><html><head><script src="/runtime.js"></script><script src="/pyodide-worker.js"></script></head><body><p>runtime</p></body></html>');
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? {executablePath: process.env.CHROMIUM_PATH} : {});
@@ -39,7 +45,7 @@ try {
       'json.dumps({"python": f"{sys.version_info.major}.{sys.version_info.minor}", "sympy": sympy.__version__,',
       '            "zero": str(sympy.simplify((x + 1)**2 - (x**2 + 2*x + 1)))})',
     ].join('\n'));
-    return {indexURL: R.indexURL, guard: !!py.pyimport('sys').modules.get('_ctm_guard'), ...JSON.parse(report)};
+    return {indexURL: R.indexURL, guard: await py.runPythonAsync("import sys; '_ctm_guard' in sys.modules"), worker: py.isWorkerProxy, ...JSON.parse(report)};
   });
   console.log('Loaded in', Math.round((Date.now() - started) / 1000), 's:', JSON.stringify(result));
   assert.equal(result.indexURL, `https://cdn.jsdelivr.net/pyodide/v${EXPECTED.pyodide}/full/`);
@@ -47,6 +53,7 @@ try {
   assert.equal(result.sympy, EXPECTED.sympy);
   assert.equal(result.zero, '0');
   assert.equal(result.guard, true);
+  assert.equal(result.worker, true);
   console.log('Runtime smoke test passed.');
 } finally {
   await browser.close();
