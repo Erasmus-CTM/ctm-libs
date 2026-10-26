@@ -1,3 +1,4 @@
+// The help table's input examples deliberately correct the legacy LaTeX leak.
 // The message catalogues and their browser resolver (locales/ctm-locale.js):
 // the compiled tables give byte-identical texts to math-exercise 0.9 and
 // py-exercise 0.3 for every key, language and sample argument (goldens from
@@ -30,7 +31,11 @@ for (const [namespace, languages] of [['math-exercise', ['en', 'de', 'nb']], ['p
           assert.equal(typeof table[key], 'function', lang + '.' + key);
           for (const [args, output] of value.$calls) assert.equal(table[key](...args), output, lang + '.' + key + '(' + JSON.stringify(args).slice(1, -1) + ')');
         } else {
-          assert.deepEqual(plain(table[key]), value, lang + '.' + key);
+          const expected = plain(value);
+          // Keep the historical golden unchanged; input examples are plain CAS syntax.
+          if (namespace === 'math-exercise' && key === 'legend') expected[0][1] =
+            'x^2 ' + {en:'or',de:'oder',nb:'eller'}[lang] + ' x**2';
+          assert.deepEqual(plain(table[key]), expected, lang + '.' + key);
         }
       }
     }
@@ -179,4 +184,14 @@ test('check-locales.py accepts the catalogues and reports a broken one', {skip: 
     assert.match(r.stderr, /nb\.someFailed: \{total\} is not one of \$args/);
     assert.match(r.stderr, /\$ref to common\.halt, which does not exist/);
   } finally { fs.rmSync(dir, {recursive: true, force: true}); }
+});
+
+test('input-help power examples contain literal CAS syntax in every supported language', () => {
+  const {L}=runtime();
+  for(const lang of ['en','de','nb']) {
+    const row=L.table('math-exercise',lang).legend[0];
+    assert.equal(row[0],'x^2','the expression column retains its TeX');
+    assert.match(row[1],/^x\^2 (or|oder|eller) x\*\*2$/);
+    assert.doesNotMatch(row[1],/[\\{}]/,'input examples must not contain TeX commands or grouping');
+  }
 });

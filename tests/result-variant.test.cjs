@@ -5,7 +5,7 @@ const plain=value=>JSON.parse(JSON.stringify(value));
 function fixture(numbered){
  const manifest={course:'course',save:true,progress:true,exercises:[{component:'math-exercise',id:'sum',save:true}]};
  const dom=new JSDOM('<main><div id="sum"></div></main><script id="ctm-store-manifest" type="application/json">'+JSON.stringify(manifest)+'</script>',{url:'https://example.test/chapter.html',runScripts:'outside-only'});
- const w=dom.window;w.TextEncoder=TextEncoder;w.CTMLayout={ready:fn=>fn()};
+ const w=dom.window;w.TextEncoder=TextEncoder;w.eval(source('ctm-layout.js'));w.CTMLayout.ready=fn=>fn();
  w.eval(source('ctm-store.js'));w.eval(source('variants.js'));w.eval(source('ctm-progress.js'));
  const approved={n:7,id:'seven',hash:'approved'},proposal={n:null,id:'new',hash:'proposal',proposal:true};
  const chooser=w.CTMVariants.create({label:'sum',variants:[approved,proposal],allowProposals:true,seed:'fixed',page:'page'});chooser.restore({variant:approved});

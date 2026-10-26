@@ -94,6 +94,7 @@ test('catalogue dependencies: the resolver and common messages once, then each n
   const scripts = [...head.matchAll(/<script src="([^"]*)"><\/script>/g)].map(m => m[1]).filter(src => /ctm-locale/.test(src));
   assert.deepEqual(scripts.map(src => src.replace(/^.*quarto-contrib\//, '')), [
     'ctm-locale-' + C.version() + '/ctm-locale.js', 'ctm-locale-' + C.version() + '/common.js',
+    'ctm-locale-ui-' + C.version() + '/ui.js',
     'ctm-locale-math-exercise-' + C.version() + '/math-exercise.js', 'ctm-locale-py-exercise-' + C.version() + '/py-exercise.js']);
   for (const src of scripts) assert.ok(fs.existsSync(path.join(dir, src)), src);
   assert.doesNotMatch(html, new RegExp('ctm-locale-feedback-' + v));

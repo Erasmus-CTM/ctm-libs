@@ -82,7 +82,14 @@ CTMLocales.add("ui",
         "n"
       ],
       "$t": "Figure {n}"
-    }
+    },
+    "settings": "Settings",
+    "answersStorage": "Answers & storage",
+    "savingLocal": "Saving in this browser",
+    "savedLocal": "Saved in this browser",
+    "notSaving": "Answers aren’t being saved",
+    "answered": "Answered, not graded",
+    "confirmClearPage": "Delete all saved answers on this page?"
   },
   "de": {
     "readingStep": "Vertiefung",
@@ -156,7 +163,14 @@ CTMLocales.add("ui",
         "n"
       ],
       "$t": "Abbildung {n}"
-    }
+    },
+    "settings": "Einstellungen",
+    "answersStorage": "Antworten & Speicherung",
+    "savingLocal": "Speichern in diesem Browser",
+    "savedLocal": "In diesem Browser gespeichert",
+    "notSaving": "Antworten werden nicht gespeichert",
+    "answered": "Beantwortet, noch nicht bewertet",
+    "confirmClearPage": "Alle gespeicherten Antworten auf dieser Seite löschen?"
   },
   "nb": {
     "readingStep": "Gå i dybden",
@@ -230,7 +244,14 @@ CTMLocales.add("ui",
         "n"
       ],
       "$t": "Figur {n}"
-    }
+    },
+    "settings": "Innstillinger",
+    "answersStorage": "Svar og lagring",
+    "savingLocal": "Lagrer i denne nettleseren",
+    "savedLocal": "Lagret i denne nettleseren",
+    "notSaving": "Svar blir ikke lagret",
+    "answered": "Besvart, ikke vurdert",
+    "confirmClearPage": "Slett alle lagrede svar på denne siden?"
   },
   "nn": {
     "readingStep": "Gå i djupna",
@@ -304,7 +325,14 @@ CTMLocales.add("ui",
         "n"
       ],
       "$t": "Figur {n}"
-    }
+    },
+    "settings": "Innstillingar",
+    "answersStorage": "Svar og lagring",
+    "savingLocal": "Lagrar i denne nettlesaren",
+    "savedLocal": "Lagra i denne nettlesaren",
+    "notSaving": "Svar blir ikkje lagra",
+    "answered": "Svart på, ikkje vurdert",
+    "confirmClearPage": "Slett alle lagra svar på denne sida?"
   }
 }
 /*END-JSON*/

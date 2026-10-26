@@ -26,19 +26,20 @@
   let settings;
   function openSettings() {
     if (!settings) buildSettings();
+    if (root.CTMSettings) { settings.populate?.(loadConfig()); root.CTMSettings.open('ai'); return; }
     if (!settings.open) { settings.populate?.(loadConfig()); if (settings.showModal) settings.showModal(); else settings.setAttribute('open', ''); }
   }
-  function closeSettings() { if (settings?.close) settings.close(); else settings?.removeAttribute('open'); }
-  function settingsButton(code) { const L = lang(code); const gear = button('⚙'); gear.classList.add('ai-feedback-gear'); gear.title = L.settings; gear.setAttribute('aria-label', L.settings); gear.onclick = openSettings; return gear; }
+  function closeSettings() { if (root.CTMSettings) { root.CTMSettings.close(); return; } if (settings?.close) settings.close(); else settings?.removeAttribute('open'); }
+  function settingsButton(code) { const L = lang(code); const gear = button('⚙'); gear.classList.add('ai-feedback-gear'); gear.title = L.settings; gear.setAttribute('aria-label', L.settings); gear.onclick = openSettings; if (root.CTMSettings) buildSettings(); return gear; }
   function buildSettings() {
     if (settings) return settings;
     const L = lang();
-    settings = node('dialog', undefined, 'ai-feedback-settings');
+    settings = node(root.CTMSettings ? 'div' : 'dialog', undefined, 'ai-feedback-settings');
     settings.id = 'ai-feedback-settings';
-    settings.setAttribute('aria-labelledby', 'ai-feedback-settings-title');
+    settings.setAttribute('aria-labelledby', root.CTMSettings ? 'ctm-settings-ai-title' : 'ai-feedback-settings-title');
     const title = node('h2', L.settings); title.id = 'ai-feedback-settings-title';
     const close = button(L.cancel); close.onclick = closeSettings;
-    settings.append(title, close);
+    if (!root.CTMSettings) settings.append(title, close);
     const form = node('div', undefined, 'ai-feedback-settings-grid');
     const fields = {};
     function field(name, label, choices, type = 'text') {
@@ -82,9 +83,11 @@
     save.onclick = () => { const cfg = {}; for (const key of ['mode', 'baseUrl', 'apiKey', 'model', 'storage']) cfg[key] = fields[key].value.trim(); saveConfig(cfg); message.textContent = L.saved; closeSettings(); };
     form.append(models, choices, save, message, node('p', L.privacy, 'ai-feedback-notice'));
     settings.append(form);
-    document.body.append(settings);
+    if (root.CTMSettings) root.CTMSettings.register('ai', L.settings, settings);
+    else document.body.append(settings);
     return settings;
   }
+  document.addEventListener('ctm:settings-open', () => { buildSettings().populate?.(loadConfig()); });
   function getClient() { return F.createClient(loadConfig(), { storage: store(loadConfig().storage) }); }
   function signature(request) { return JSON.stringify(request); }
   function attach(options) {

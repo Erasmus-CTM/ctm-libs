@@ -20,9 +20,9 @@ async function load({progress = true, early = [], extraExercises = [], messages 
   for (const [type,detail] of early) w.document.dispatchEvent(new w.CustomEvent(type,{detail}));
   if (w.document.readyState === 'loading') await new Promise(resolve => w.document.addEventListener('DOMContentLoaded',resolve));
   const send = (type, detail) => w.document.dispatchEvent(new w.CustomEvent(type,{detail}));
-  const quiz = () => w.document.querySelector('[data-ctm-quiz="q"] .ctm-progress');
-  const page = () => w.document.querySelector('.ctm-progress-page .ctm-progress');
-  return {w,send,quiz,page,buttons:(scope = w.document) => [...scope.querySelectorAll('button')]};
+  const quiz = () => w.document.querySelector('.ctm-progress[data-ctm-quiz="q"]');
+  const page = () => w.document.querySelector('.ctm-progress.ctm-progress-page');
+  return {w,send,quiz,page,buttons:(scope = w.document) => [...scope.querySelectorAll('.ctm-question-tile')]};
 
 }
 test('manifest panels precede Python, use ordered accessible buttons and exclude cells', async () => {
@@ -45,10 +45,10 @@ test('fractional results, invalid and unrelated events do not change valid progr
   const {w,send,buttons,quiz,page} = await load();
   send('ctm:result',{component:'math-exercise',id:'a',score:0.5,status:'partial'});
   assert.equal(quiz().querySelector('.ctm-progress-total').textContent,'0,5 av 2');
-  assert.match(buttons(quiz())[0].textContent,/½ partly correct/);
-  assert.match(buttons(quiz())[1].textContent,/not attempted/);
+  assert.match(buttons(quiz())[0].getAttribute('aria-label'),/partly correct/);
+  assert.match(buttons(quiz())[1].getAttribute('aria-label'),/not attempted/);
   assert.equal(page().querySelector('.ctm-progress-total').textContent,'0 av 1');
-  assert.match(buttons(page())[0].textContent,/not attempted/);
+  assert.match(buttons(page())[0].getAttribute('aria-label'),/not attempted/);
   for (const detail of [
     {component:'math-exercise',id:'a',score:0,status:'invalid'},
     {component:'math-exercise',id:'a',score:2,status:'correct'},
@@ -65,10 +65,10 @@ test('early restore is buffered; outdated results remain visible and do not earn
   send('ctm:result',{component:'math-exercise',id:'a',score:1,status:'correct'});
   assert.doesNotMatch(buttons(quiz())[0].getAttribute('aria-label'),/outdated/);
   assert.equal(quiz().querySelector('.ctm-progress-total').textContent,'1 av 2');
-  assert.match(buttons(quiz())[1].textContent,/not attempted/);
+  assert.match(buttons(quiz())[1].getAttribute('aria-label'),/not attempted/);
   assert.equal(page().querySelector('.ctm-progress-total').textContent,'0 av 1');
   send('ctm:store-clear',{});
-  assert.match(buttons(quiz())[0].textContent,/not attempted/);
+  assert.match(buttons(quiz())[0].getAttribute('aria-label'),/not attempted/);
   w.close();
 });
 test('tiles call CTMNav with the exact exercise target; quiz works without page progress', async () => {
@@ -97,9 +97,9 @@ test('one exercise reset preserves other quiz and page tiles; page and course cl
   check('1,5 av 2','1 av 1');
   send('ctm:store-clear',{course:'course',page:'page',id:'a'});
   check('0,5 av 2','1 av 1');
-  assert.match(buttons(quiz())[0].textContent,/not attempted/);
-  assert.match(buttons(quiz())[1].textContent,/partly correct/);
-  assert.match(buttons(page())[0].textContent,/correct/);
+  assert.match(buttons(quiz())[0].getAttribute('aria-label'),/not attempted/);
+  assert.match(buttons(quiz())[1].getAttribute('aria-label'),/partly correct/);
+  assert.match(buttons(page())[0].getAttribute('aria-label'),/correct/);
   for (const detail of [
     {course:'other',page:'page'}, {course:'course',page:'other'},
     {course:'course',page:'page',id:'absent'}
@@ -120,21 +120,23 @@ test('duplicate DOM labels across components never create ambiguous tiles', asyn
     assert.equal(quiz().querySelector('.ctm-progress-total').textContent,'0 av 1');
     send('ctm:result',{component:'math-exercise',id:'a',score:1,status:'correct'});
     assert.equal(quiz().querySelector('.ctm-progress-total').textContent,'0 av 1');
-    assert.match(buttons(quiz())[0].textContent,/not attempted/);
+    assert.match(buttons(quiz())[0].getAttribute('aria-label'),/not attempted/);
     w.close();
   }
 });
 
-test('catalogue status labels render exactly one icon and speak plain text', async () => {
-  for (const labels of [uiMessages.en,uiMessages.nb]) {
+test('tiles contain only numbers and expose localized status and credit without decorative glyphs', async () => {
+  for (const labels of [uiMessages.en,uiMessages.nb,uiMessages.de,uiMessages.nn]) {
     const {w,quiz,buttons,send} = await load({messages:labels});
-    for (const [status,score,icon] of [['correct',1,'✓'],['partial',0.5,'½'],['wrong',0,'✗']]) {
+    for (const [status,score] of [['correct',1],['partial',0.25],['wrong',0]]) {
       send('ctm:result',{component:'math-exercise',id:'a',score,status});
-      assert.equal(buttons(quiz())[0].textContent.split(icon).length-1,1);
-      assert.doesNotMatch(buttons(quiz())[0].getAttribute('aria-label'),/[✓½✗–]/);
+      const tile=buttons(quiz())[0];
+      assert.equal(tile.textContent,'1');
+      assert.equal(tile.style.getPropertyValue('--ctm-credit'),(score*100)+'%');
+      assert.doesNotMatch(tile.getAttribute('aria-label'),/[✓½✗–]/);
+      assert.match(tile.getAttribute('aria-label'),new RegExp(labels[status].replace(/^[✓½✗–]\s*/,'')));
     }
-    assert.equal(buttons(quiz())[1].textContent.split('–').length-1,1);
-    assert.doesNotMatch(buttons(quiz())[1].getAttribute('aria-label'),/[✓½✗–]/);
+    assert.equal(buttons(quiz())[1].textContent,'2');
     w.close();
   }
 });
@@ -247,5 +249,37 @@ test('build-time order numbers tiles before runtime root attributes become avail
   w.CTMNav={reveal:async element=>{targets.push(element.id);}};
   for(const button of buttons(quiz())){button.click();await Promise.resolve();}
   assert.deepEqual(targets,['a','b']);
+  w.close();
+});
+
+test('editing removes previous credit and distinguishes ungraded, zero and empty answers', async () => {
+  const {w,quiz,buttons,send}=await load();
+  const entry={component:'math-exercise',id:'a'};
+  const tile=buttons(quiz())[0];
+  send('ctm:result',{...entry,status:'partial',score:0.25});
+  assert.equal(tile.style.getPropertyValue('--ctm-credit'),'25%');
+  assert.match(tile.getAttribute('aria-label'),/0,25 av 1/);
+  send('ctm:answer-change',{...entry,answered:true});
+  assert.equal(tile.dataset.status,'answered');
+  assert.equal(tile.style.getPropertyValue('--ctm-credit'),'0%');
+  assert.equal(quiz().querySelector('.ctm-progress-total').textContent,'0 av 2');
+  send('ctm:result',{...entry,status:'wrong',score:0});
+  assert.equal(tile.dataset.status,'wrong');
+  send('ctm:answer-change',{...entry,answered:false});
+  assert.equal(tile.dataset.status,'unattempted');
+  send('ctm:store-restore',{...entry,state:'restored',answered:true});
+  assert.equal(tile.dataset.status,'answered');
+  w.close();
+});
+
+test('current-question indication follows exercise focus independently of credit', async () => {
+  const {w,quiz,buttons,send}=await load();
+  const input=w.document.createElement('input');
+  w.document.getElementById('b').append(input); input.focus();
+  assert.equal(buttons(quiz())[1].getAttribute('aria-current'),'step');
+  assert.equal(buttons(quiz())[0].hasAttribute('aria-current'),false);
+  send('ctm:result',{component:'py-exercise',id:'b',score:0.75,status:'partial'});
+  assert.equal(buttons(quiz())[1].getAttribute('aria-current'),'step');
+  assert.equal(buttons(quiz())[1].style.getPropertyValue('--ctm-credit'),'75%');
   w.close();
 });

@@ -373,6 +373,7 @@ function M.prepare(doc)
   uiLanguage = ctm.locale.resolve("ai-feedback")
   feedbackLanguage = ctm.locale.tag("ai-feedback", "feedback-language")
   policy.emit()
+  ctm.layout.use()
   ctm.deps.html({
     name = "ai-feedback",
     scripts = {"feedback/feedback-core.js", "feedback/feedback-dom.js", "feedback/ai-feedback.js"},

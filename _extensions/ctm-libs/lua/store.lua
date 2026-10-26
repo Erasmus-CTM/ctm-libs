@@ -53,7 +53,7 @@ return function(ctm)
   function M.exercises() return exercises end
   local function messages()
     local out = {}
-    for _, key in ipairs({"savingNotice", "savingDisabled", "savingOffNotice", "clearFailed", "storageUnavailable", "recordTooLarge", "saveOff", "saveOn", "confirmSaveOff", "confirmClearCourse",
+    for _, key in ipairs({"settings", "answersStorage", "savingLocal", "savedLocal", "notSaving", "answered", "confirmClearPage", "savingNotice", "savingDisabled", "savingOffNotice", "clearFailed", "storageUnavailable", "recordTooLarge", "saveOff", "saveOn", "confirmSaveOff", "confirmClearCourse",
       "lastResult", "sourceChanged", "showSaved", "outdated", "variantChanged", "variantWithdrawn", "statusCorrect", "statusPartial",
       "statusWrong", "statusInvalid", "confirmNewVariant", "progressTitle", "exercise", "correct", "partial", "wrong",
       "unattempted", "total", "exportTitle", "copyAll", "downloadMarkdown", "downloadHTML", "exportClose"}) do
@@ -64,11 +64,13 @@ return function(ctm)
   end
   local function bar(saving, export)
     local buttons = saving and {
-      '<button type="button" data-ctm-clear-page>' .. escape(text("clearPage")) .. '</button>',
-      '<button type="button" data-ctm-clear-course>' .. escape(text("clearCourse")) .. '</button>',
       '<button type="button" data-ctm-save-toggle>' .. escape(text("saveOff")) .. '</button>'
     } or {}
     if export then buttons[#buttons + 1] = '<button type="button" data-ctm-export>' .. escape(text("exportTitle")) .. '</button>' end
+    if saving then
+      buttons[#buttons + 1] = '<button type="button" data-ctm-clear-page>' .. escape(text("clearPage")) .. '</button>'
+      buttons[#buttons + 1] = '<button type="button" data-ctm-clear-course>' .. escape(text("clearCourse")) .. '</button>'
+    end
     return pandoc.RawBlock("html", '<!--ctm-save-generated--><div class="ctm-save-bar" role="region" aria-label="'
       .. escape(text(saving and "savingLabel" or "exportTitle")) .. '" hidden><p class="ctm-save-notice">' .. escape(text(saving and "savingNotice" or "savingDisabled")) .. '</p><div class="ctm-save-actions">'
       .. table.concat(buttons, "\n") .. '</div><span class="ctm-save-status" role="status" aria-live="polite"></span></div>')
