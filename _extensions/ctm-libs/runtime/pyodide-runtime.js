@@ -540,7 +540,11 @@
     runtimeStops.set(py, (runtimeStops.get(py) || 0) + 1);
     if (typeof py.cancelOperation === 'function') py.cancelOperation();
     var message = reason || 'Stopped by the learner';
-    function restart() { markGone(py, message); return py.restart(message); }
+    function announce(state) {
+      if (root.dispatchEvent && typeof root.CustomEvent === 'function') root.dispatchEvent(new root.CustomEvent('ctm-python-stop-state', {detail: {proxy: py, state: state}}));
+    }
+    announce('stopping');
+    function restart() { announce('restarting'); markGone(py, message); return py.restart(message); }
     if (!root.crossOriginIsolated || !py.interruptBuffer || typeof py.interrupt !== 'function' || typeof py.whenIdle !== 'function') {
       return restart();
     }
@@ -555,6 +559,7 @@
       clearTimeout(timer);
       if (!idle) return restart();
       if (typeof py.clearInterrupt === 'function') py.clearInterrupt();
+      announce('stopped');
     });
     stopping.set(py, done);
     done.then(function () { stopping.delete(py); }, function () { stopping.delete(py); });

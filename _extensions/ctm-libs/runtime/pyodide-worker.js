@@ -1100,8 +1100,15 @@ self.onmessage = function(event) {
       else timer = setTimeout(() => { if (stopButton) stopButton.hidden = false; }, (options.stopAfter || 20) * 1000);
       options.onBusy?.(busy);
     };
+    let pageProxy = null;
+    root.addEventListener?.('ctm-python-stop-state', event => {
+      if (event.detail?.proxy !== pageProxy) return;
+      const state = event.detail.state;
+      const message = state === 'restarting' ? text.pythonRestarting : state === 'stopped' ? text.stopped : text.pythonStopping;
+      if (message) { status(message); options.onStatus?.(message); }
+    });
     function follow(started, restarted) {
-      started.then(() => { status(text.pythonReady || 'Python ready.'); }, () => {
+      started.then(proxy => { pageProxy = proxy; status(text.pythonReady || 'Python ready.'); }, () => {
         status(text.pythonFailed || 'Python failed.'); if (retryButton) retryButton.hidden = false;
       });
       if (restarted) status(text.pythonRestarting || 'Python is restarting; variables were reset.');
