@@ -46,3 +46,14 @@ test('output floods are bounded before posting or collecting per-run output', as
   assert.ok(messages.length<=2,'bounded final flush');assert.ok(messages.every(x=>x.operationID===7));
   assert.ok(messages.flatMap(x=>x.entries).some(x=>x.type==='notice'));
 });
+
+test('empty-line floods cannot evade the output entry budget', async () => {
+  const w=W.workerContext({plugin:'registerPlugin(api=>({commands:{emptyFlood:async()=>{api.capture.start();for(let i=0;i<100000;i++)api.capture.push({message:"",type:"stdout"});return api.capture.entries();}}}));'});
+  await w.init();await w.send({type:'beginOperation',id:1,operationID:8});await w.send({type:'emptyFlood',id:2});
+  assert.equal(w.result(2).value.length,4096);
+  assert.equal(w.messages.filter(x=>x.type==='streamBatch').length,1);
+  await w.send({type:'endOperation',id:3});
+  const batches=w.messages.filter(x=>x.type==='streamBatch');
+  assert.equal(batches.length,2);
+  assert.equal(batches.flatMap(x=>x.entries).filter(x=>x.type==='notice').length,1);
+});

@@ -55,7 +55,7 @@ try {
     assert.deepEqual(await page.evaluate(()=>MathExerciseRuntime.transaction(py,()=>py.runPythonAsync('[1,2,3]'))),[1,2,3]);
     assert.equal(await page.evaluate(()=>MathExerciseRuntime.transaction(py,()=>py.runPythonAsync('import sys\nsys.modules.pop(\"_ctm_executor\", None)\n42'))),42);
     assert.equal(await page.evaluate(()=>MathExerciseRuntime.transaction(py,()=>py.runPythonAsync('42'))),42);
-    for(const code of ['while True: pass','while True: print("output flood")','while True:\n    try:\n        while True: pass\n    except KeyboardInterrupt: pass']) {
+    for(const code of ['while True: pass','while True: print("output flood")','while True: print("")','while True:\n    try:\n        while True: pass\n    except KeyboardInterrupt: pass']) {
       const before=await page.evaluate(()=>{globalThis.output=[];globalThis.finished=null;globalThis.runStart=performance.now();return heartbeats;});
       await page.evaluate(code=>{globalThis.running=MathExerciseRuntime.transaction(py,()=>py.runPythonAsync(code),{onStream:(text,kind)=>output.push({text,kind})}).then(()=>finished='done',e=>finished=String(e));},code);
       await page.waitForTimeout(250);

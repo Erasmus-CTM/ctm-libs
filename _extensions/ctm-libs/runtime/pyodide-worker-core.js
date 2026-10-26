@@ -5,7 +5,7 @@ let runEntries = [];
 let inputAllowed = true, learnerPhase = true;
 let operationID = null, outputBytes = 0, outputPending = [], outputPendingBytes = 0;
 let streamOutstanding = false, outputTruncated = false;
-const OUTPUT_LIMIT = 262144, BATCH_LIMIT = 16384;
+const OUTPUT_LIMIT = 262144, BATCH_LIMIT = 16384, ENTRY_LIMIT = 4096;
 function flushOutput() {
   if (!outputPending.length || streamOutstanding) return;
   self.postMessage({type: 'streamBatch', operationID, entries: outputPending});
@@ -16,7 +16,7 @@ function emitOutput(text, type) {
   if (!learnerPhase) return;
   if (outputTruncated) return;
   const bytes = new TextEncoder().encode(text).length;
-  if (outputBytes + bytes > OUTPUT_LIMIT) {
+  if (outputBytes + bytes > OUTPUT_LIMIT || runEntries.length >= ENTRY_LIMIT) {
     outputTruncated = true;
     outputPending.push({message: ((config && config.messages || {}).outputTruncated || 'Output truncated; Stop is still available.'), type: 'notice'});
     flushOutput(); return;
