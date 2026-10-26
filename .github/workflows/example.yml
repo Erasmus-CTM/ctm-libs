@@ -6,7 +6,7 @@ jobs:
   example:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: quarto-dev/quarto-actions/setup@v2
         with:
           version: '1.8.27'
@@ -14,7 +14,7 @@ jobs:
         run: |
           quarto render example.qmd
           test -f example.html || test -f _site/example.html
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: standalone-example
           path: |
