@@ -911,6 +911,11 @@ links so the learner can attach them in their chat.
 
 ### P13 page worker
 
+After Monaco's `editor.main` AMD module loads, call
+`MathExerciseRuntime.prepareMonacoClipboard()` before constructing an editor.
+It guards the pinned WebKit clipboard workaround on insecure/exam pages;
+ordinary copy fallbacks and secure course behavior remain available.
+
 `CTMWorker.page(options)` starts or returns the single published page worker;
 private backends retain `CTMWorker.start({publish:false, ...})`. Standalone
 `ensurePyodide()` requires this dependency and never loads Python on the page.

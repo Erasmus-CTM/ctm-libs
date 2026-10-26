@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Shared Monaco preparation guards WebKit's proactive clipboard workaround
+  when the API is unavailable or exam output is active. Both Python editors
+  retain normal copy and selectable-text fallbacks without vendor-byte edits.
 - Remove the ai-feedback extension alias and the metadata bridge for
   pyodide-interaktiv 1.8 (consolidation L3x). Install CTM Assessment and list
   `ctm-assessment`, or use standalone pyodide-interaktiv 1.9 or later.

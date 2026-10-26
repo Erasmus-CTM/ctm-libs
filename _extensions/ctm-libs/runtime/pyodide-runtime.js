@@ -64,9 +64,28 @@
     });
   }
 
+  // Call after editor.main: this module is already inside Monaco's pinned AMD
+  // bundle. Do not ask its loader to fetch a separate, nonexistent source file.
+  function prepareMonacoClipboard() {
+    var module = root.require('vs/platform/clipboard/browser/clipboardService');
+    var prototype = module && module.BrowserClipboardService && module.BrowserClipboardService.prototype;
+    if (!prototype || prototype.__ctmClipboardGuarded || typeof prototype.installWebKitWriteTextWorkaround !== 'function') return;
+    var install = prototype.installWebKitWriteTextWorkaround;
+    prototype.installWebKitWriteTextWorkaround = function () {
+      // Monaco 0.46 proactively writes promised clipboard data on each WebKit
+      // click/key. Missing APIs and denied exam access produce uncaught errors.
+      // Leave its ordinary writeText/execCommand copy fallback in place.
+      if (!root.qpyodideExamOutput && root.navigator && root.navigator.clipboard &&
+          typeof root.navigator.clipboard.write === 'function' && typeof root.ClipboardItem === 'function')
+        return install.apply(this, arguments);
+    };
+    Object.defineProperty(prototype, '__ctmClipboardGuarded', {value: true});
+  }
+
   // Preserve an already-loaded runtime's live state; add only the readiness
   // contract when an older component copy did not provide it.
   if (root.MathExerciseRuntime && typeof root.MathExerciseRuntime.ensureCheckers === 'function') {
+    if (typeof root.MathExerciseRuntime.prepareMonacoClipboard !== 'function') root.MathExerciseRuntime.prepareMonacoClipboard = prepareMonacoClipboard;
     if (typeof root.MathExerciseRuntime.trackInitialUI !== 'function' ||
         typeof root.MathExerciseRuntime.whenInitialUIReady !== 'function') {
       root.MathExerciseRuntime.trackInitialUI = trackInitialUI;
@@ -587,6 +606,7 @@
     ensurePyodide: ensurePyodide,
     trackInitialUI: trackInitialUI,
     whenInitialUIReady: whenInitialUIReady,
+    prepareMonacoClipboard: prepareMonacoClipboard,
     scriptURL: scriptURL,
     installModule: installModule,
     forgetModules: forgetModules,
