@@ -7,7 +7,7 @@ permissions:
   contents: read
 jobs:
   standalone:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
@@ -22,7 +22,11 @@ jobs:
       - run: node scripts/sync-worker-core.cjs --check
       - run: node --test tests/p13-transactions.test.cjs tests/worker.test.cjs tests/runtime-scoped-stop.test.cjs
       - run: npm install --no-save --ignore-scripts playwright@1.55.1
-      - run: npx playwright install --with-deps chromium
+      - name: Install the supported browser with the mainline mirror fix
+        timeout-minutes: 5
+        run: |
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          npx playwright install --with-deps chromium
       - name: Real Python, endless loops, output floods, input and recovery
         run: node tests/browser/standalone.mjs > "$RUNNER_TEMP/standalone.json"
       - uses: actions/upload-artifact@v7
