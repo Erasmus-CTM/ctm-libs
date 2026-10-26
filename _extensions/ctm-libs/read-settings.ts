@@ -190,13 +190,13 @@ function unknown(section: string, key: string, origin: string, known: string[]) 
 }
 
 // --- ai-feedback ------------------------------------------------------------
-const RUNTIME_KEYS = ['mode', 'storage', 'base-url', 'model', 'ui-language', 'feedback-language'];
-const SWITCH_KEYS = ['enabled'];
+const RUNTIME_KEYS = ['mode', 'storage', 'base-url', 'model', 'generator-model', 'ui-language', 'feedback-language'];
+const SWITCH_KEYS = ['enabled', 'similar'];
 // What a build without AI feedback does with exercises only AI feedback can
 // assess (lua/policy.lua validates the value).
 const BUILD_KEYS = ['without-ai'];
 // A2: policy-files adds up over the levels, policy selects (the nearest wins).
-const POLICY_KEYS = ['policy-files', 'policy'];
+const POLICY_KEYS = ['policy-files', 'policy', 'generation-policy'];
 const DEPRECATED: Record<string, string> = {
   'project-policy': 'use policy (the nearest setting wins)',
   'page-policy': "use policy, extending the project's policy where needed",
@@ -218,6 +218,11 @@ function feedbackSettings() {
     }
   }
   feedbackSwitch(out);
+  const similar = resolveKey('ai-feedback', 'similar');
+  if (similar && similar.value !== null) {
+    if (typeof similar.value !== 'boolean') errors.push('ai-feedback: similar must be true or false');
+    else out.similar = similar;
+  }
   for (const key of [...RUNTIME_KEYS, ...BUILD_KEYS]) {
     // Only a single value of the merged metadata counts (as before).
     const entry = resolveKey('ai-feedback', key, value => scalar(value) !== undefined);
@@ -343,7 +348,8 @@ function policies() {
     if (key) project = {value: meta[key], origin: 'document metadata'};
   }
   const page = seeded('page-policy').at(-1);
-  for (const [slot, entry] of [['projectPolicy', project], ['pagePolicy', page]] as [string, Entry | undefined][]) {
+  const generation = seeded('generation-policy').at(-1);
+  for (const [slot, entry] of [['projectPolicy', project], ['pagePolicy', page], ['generationPolicy', generation]] as [string, Entry | undefined][]) {
     if (!entry) continue;
     const value = selection(entry.value, entry.origin);
     if (value !== undefined && value !== null) config[slot] = value;

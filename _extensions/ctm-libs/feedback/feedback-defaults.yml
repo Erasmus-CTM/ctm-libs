@@ -1,4 +1,13 @@
 ai-feedback:
+  generation:
+    base-prompt: >-
+      Create one self-contained, well-posed, nontrivial practice problem on the original topic
+      and method, at the requested difficulty. Follow the authored restrictions and the supplied
+      checker contracts. Do not copy a context example. Return the requested JSON only, with
+      explicit mathematical answers and fixed-operation SymPy recipes wherever applicable.
+      Never generate Python checker code, HTML, external responses or resizable inputs.
+      A matching answer is not proof of a worthwhile problem: check givens and nontriviality.
+    steps: []
   defaults:
     max-words: 250
     max-issues: 3

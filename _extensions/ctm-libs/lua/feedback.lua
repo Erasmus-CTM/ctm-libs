@@ -366,7 +366,7 @@ function M.prepare(doc)
     if not rawget(_G, "__ctmLibsEnd") and policy.withoutAIStop() then M.flush() end
     return doc
   end
-  for _, key in ipairs({"mode", "storage", "base-url", "model"}) do
+  for _, key in ipairs({"mode", "storage", "base-url", "model", "generator-model"}) do
     cfg[key] = ctm.settings.string("ai-feedback", key)
   end
   -- ai-feedback: ui-language / feedback-language, then ctm-assessment: lang, then lang.
@@ -381,16 +381,20 @@ function M.prepare(doc)
   })
   -- storage is emitted only when set, so a consumer's own default (pyodide:
   -- feedback-storage) applies otherwise; the browser falls back to local.
-  quarto.doc.include_text("before-body", '<script>window.__aiFeedbackConfig = ' .. json({ mode = str(cfg.mode, "copy"), storage = cfg.storage and str(cfg.storage, nil) or nil, baseUrl = str(cfg["base-url"], ""), model = str(cfg.model, "") }) .. ';</script>')
+  local browserConfig = {mode = str(cfg.mode, "copy"), storage = cfg.storage and str(cfg.storage, nil) or nil,
+    baseUrl = str(cfg["base-url"], ""), model = str(cfg.model, "")}
+  if cfg["generator-model"] and cfg["generator-model"] ~= "" then browserConfig.generatorModel = cfg["generator-model"] end
+  if ctm.settings.bool("ai-feedback", "similar", {default = false}) then browserConfig.similar = true end
+  quarto.doc.include_text("before-body", '<script>window.__aiFeedbackConfig = ' .. json(browserConfig) .. ';</script>')
   doc.blocks = walk(doc.blocks, {context = {}, from = {}})
   return doc
 end
 
 -- {exercise, name}: the policy name is checked in both builds; without AI
 -- feedback (P22) the name is left out.
-function M.selection(block, opts)
+function M.selection(block, opts, key)
   requireSettings("selection")
-  local selection = policy.selection(block, opts)
+  local selection = policy.selection(block, opts, key)
   if not M.enabled() then selection.name = "" end
   return selection
 end

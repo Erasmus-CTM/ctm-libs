@@ -23,3 +23,11 @@ Global methods: enabled(), setEnabled(bool), clearPage(), clearCourse(), seed(),
 Progress navigation uses number-only tiles outside the exercise flow. Wide pages use the right margin alongside the existing table of contents; narrow pages expose a grid-icon button opening a modal question picker. Credit fills each tile from the bottom in proportion to its score. A dot marks an ungraded answer, a cross marks zero credit, a dashed border marks an outdated result, and an independent outline marks the current question. Outdated credit is excluded from current totals. Editing removes previous credit until the answer is checked again. Titles, totals, localized status and exact credit remain available to screen readers without visible labels. Forced-color mode adds partial/full-credit symbols, and touch tiles are 44 px. Both dialogs use native modal keyboard handling, Escape dismissal and focus restoration.
 
 Focused DOM and Quarto render tests cover identities, restoration, credit and shared dependencies. `tests/browser/compact-ui.mjs` checks settings integration, export focus, desktop/mobile placement, keyboard navigation, touch targets, forced colors and print in Chromium; set `AXE_MODULE` to an installed axe-core script to include accessibility checks. It exercises UI adapters without starting Python or checking mathematical correctness.
+
+Adapters may register `hasAnswer(inputs)` to distinguish learner responses from
+auxiliary data stored in their record. `flush({notify: false})` persists such data
+without emitting `ctm:answer-change` or changing the current result. A pending
+ordinary answer edit still emits its notification when flushed. Ordinary
+`changed()` and `flush()` retain their normal invalidation/notification behavior.
+Generated practice uses these options so its saved work never changes the
+original exercise's navigation credit or answered marker.

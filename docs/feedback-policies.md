@@ -179,3 +179,32 @@ After editing shipped defaults run `python scripts/sync-feedback-defaults.py`;
 CI checks generated/browser defaults agree with the YAML. Test adapters and
 runtime behavior in the CTM Assessment umbrella before adopting changes in
 course sites.
+
+## Similar-problem generation
+
+Phase-1 generation uses the same named policy dictionary, parser and inheritance
+rules. `ai-feedback: generation-policy:` selects a policy independently of
+`policy`; it accepts the same scalar or integration map. Omitted, it uses its
+own shipped generation base prompt. A common map such as `{default: practice}`
+adds course instructions while retaining the shipped integration prompt. An
+exercise can select a specialization with `#| generation-policy: practice`.
+
+Policies may also contain string fields `harder`, `easier` and `same`. Generation
+uses the complete resolved common/integration `basePrompts` and the selected
+direction; teaching ignores these direction fields. Generation ignores teaching
+steps. Both uses share exercise-ID overrides, followed by their respective
+explicit exercise policy. Editing direction fields does not reset hint progress.
+
+The exercise can append `#| harder: Give more vectors.` or
+`#| simpler: Give fewer vectors.` (`simpler` maps to `easier`), and `#| same:`.
+These do not enable generation. Authors opt in with `ai-feedback: similar: true`
+or `#| similar: true`; an exercise's false overrides course opt-in. Exam/no-AI
+builds keep it off. Prose limits steer generation; trusted authored checks must
+also enforce mathematical hard bounds.
+
+Generation client calls use `complete(messages, {generation: true, signal})`:
+180 seconds, 16384 output tokens and stripped complete reasoning blocks before
+validation, without disabling the reasoning model. Per-call `timeoutMs` and
+`maxTokens` override these budgets. Ordinary feedback remains 60 seconds/8192
+and rejects reasoning leakage. `generator-model` sets a generation model;
+learners may override it in Feedback settings. Copy mode cannot generate.
