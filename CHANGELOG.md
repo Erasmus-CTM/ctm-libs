@@ -5,6 +5,14 @@
 - Shared Monaco preparation guards WebKit's proactive clipboard workaround
   when the API is unavailable or exam output is active. Both Python editors
   retain normal copy and selectable-text fallbacks without vendor-byte edits.
+- `MathExerciseRuntime.ensurePyodide` in a worker loads Pyodide only from the
+  base its page passes, `ensurePyodide({indexURL})` with the page's
+  `MathExerciseRuntime.indexURL`; without it the call fails and nothing
+  loads. Before, a worker (no `CTMAssets` there) fell back to jsDelivr
+  without a word, also when its page used local or exam assets (review
+  2026-11 L18). A worker keeps its first base and refuses another. Pages are
+  unchanged. Workers that load the runtime with `importScripts` (stack-wasm-maxima's
+  prototype at its next ctm-libs pin) pass the page's `indexURL`.
 - Remove the ai-feedback extension alias and the metadata bridge for
   pyodide-interaktiv 1.8 (consolidation L3x). Install CTM Assessment and list
   `ctm-assessment`, or use standalone pyodide-interaktiv 1.9 or later.

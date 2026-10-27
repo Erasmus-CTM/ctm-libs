@@ -536,6 +536,22 @@ operation's promise when asynchronous; callers can observe restart failures.
   loads it with `importScripts`); a worker loads ctm-checkers.js the same
   way before `ensureCheckers`, so the install and the calls use the worker's
   namespace.
+- `indexURL` is the Pyodide base the page selected (local or exam assets, or
+  jsDelivr). A worker has no page configuration and cannot tell which: its
+  page passes `indexURL` along with `scriptURL`, and the worker calls
+  `ensurePyodide({indexURL})`. Without it, `ensurePyodide()` in a worker
+  fails and loads nothing; it never falls back to jsDelivr. The base must be
+  an absolute http(s) URL of a folder (ending in `/`); the worker keeps the
+  first one and refuses another. On a page the option is ignored: the page's
+  own selection applies.
+
+```js
+// page
+worker.postMessage({init: {runtime: MathExerciseRuntime.scriptURL, indexURL: MathExerciseRuntime.indexURL}});
+// worker
+importScripts(init.runtime);
+const py = await MathExerciseRuntime.ensurePyodide({indexURL: init.indexURL});
+```
 
 ### CTMWorker
 
