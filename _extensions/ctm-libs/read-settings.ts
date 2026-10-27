@@ -450,7 +450,7 @@ function localAssets() {
       for (const key of ['base-url', 'build-variant']) {
         if (Object.hasOwn(scope.pyodide || {}, key)) errors.push('ctm-assessment: local assets do not support pyodide.' + key + ' (' + where + '). Remove that override.');
       }
-      for (const key of ['src_jxg', 'src_css', 'src_mjx', 'mjx_fonts']) {
+      for (const key of ['src_jxg', 'src_css', 'src_mjx', 'src_mjx_preload', 'mjx_fonts']) {
         const value = scope.jsxgraph?.[key];
         const suppliedByHook = scope === doc && origin === 'document metadata' && same(value, doc.defaults?.[key]);
         if (http(value) && !suppliedByHook) errors.push('ctm-assessment: local assets do not support an author HTTP jsxgraph.' + key + ' (' + where + '). Use a local path or remove that override.');
@@ -462,8 +462,9 @@ function localAssets() {
     const origin = settings.pyodide[key].origin;
     if (!errors.some(e => e.includes('pyodide.' + key + ' (' + origin + ')'))) errors.push('ctm-assessment: local assets do not support pyodide.' + key + ' (' + origin + '). Remove that override.');
   }
-  if (!resources) errors.push('ctm-assessment: local assets require project.resources to include "_ctm-assets/**". Run the CTM Assessment installer with --assets local.');
-  if (!theme) errors.push('ctm-assessment: local assets require the offline.scss or offline-system.scss theme. Run the CTM Assessment installer with --assets local.');
+  const prepare = " CTM Assessment's installer has no local-asset option yet: local assets are prepared with its offline tooling (docs/offline-install-preparation.md).";
+  if (!resources) errors.push('ctm-assessment: local assets require project.resources to include "_ctm-assets/**".' + prepare);
+  if (!theme) errors.push('ctm-assessment: local assets require the offline.scss or offline-system.scss theme.' + prepare);
 }
 
 let policyResult = {config: {layers: [], pageLayers: []} as Record<string, unknown>, names: [] as string[]};

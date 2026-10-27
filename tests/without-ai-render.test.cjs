@@ -151,7 +151,7 @@ test('a project stops at its first page with such exercises; the error names an 
 }));
 
 test('the end filter listed before a CTM filter stops a build without AI feedback and warns in one with it, naming the order', {skip}, () => {
-  const ORDER = /ctm-libs-end\.lua ran before ctm-libs' preparation on this page\. List it last, after every CTM filter, as the package does \(filters: \[ctm-assessment\] runs ctm-libs, jsxgraph, math-exercise, py-exercise, pyodide-interaktiv, then ctm-libs-end\.lua\)\./g;
+  const ORDER = /ctm-libs-end\.lua ran before ctm-libs' preparation on this page\. List it last, after every CTM filter, as the package does \(filters: \[ctm-assessment\] runs ctm-libs, jsxgraph, math-exercise, ctm-stack, py-exercise, pyodide-interaktiv, then ctm-libs-end\.lua\)\./g;
   withProject({'page.qmd': page(setting('text'))}, dir => {
     let r = C.render(dir, ['page.qmd'], OFF);
     assert.notEqual(r.status, 0);

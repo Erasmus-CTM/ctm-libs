@@ -15,8 +15,8 @@ quarto add https://erasmus-ctm.github.io/ctm-assessment/ctm-assessment.tar.gz
 filters: [ctm-assessment]
 ```
 
-The package brings ctm-libs, JSXGraph, math-exercise, py-exercise and
-pyodide-interaktiv, in one version. Use Quarto 1.8.27 or later. A component
+The package brings ctm-libs, ctm-checkers, JSXGraph, math-exercise, ctm-stack,
+py-exercise and pyodide-interaktiv, in one version. Use Quarto 1.8.27 or later. A component
 found without the package stops the render with this install command.
 
 AI feedback activities (`.ai-feedback` blocks), their settings (`ai-feedback:`)
@@ -39,10 +39,13 @@ It ships its own generated forwarder for projects set up for 1.8.
 
 ## pyodide-interaktiv on its own
 
-pyodide-interaktiv also installs without the package (decision 5):
+pyodide-interaktiv also installs without the package (decision 5). Its current
+version is on the branch `feature/shared-feedback-integration`; the
+repository's default branch still holds 1.6, without ctm-libs, so name the
+branch:
 
 ```sh
-quarto add Erasmus-CTM/pyodide-interaktiv
+quarto add Erasmus-CTM/pyodide-interaktiv@feature/shared-feedback-integration
 ```
 
 writes `_extensions/Erasmus-CTM/pyodide-interaktiv`, a copy of ctm-libs
@@ -50,7 +53,7 @@ writes `_extensions/Erasmus-CTM/pyodide-interaktiv`, a copy of ctm-libs
 checked in its CI) and, from 1.9, an `ai-feedback` forwarder that replaces the
 ai-feedback 0.8.1 folder of 1.8 projects (`filters: [ai-feedback]` keeps
 working with one warning). The component calls the bootstrap with
-`{standalone = "quarto add Erasmus-CTM/pyodide-interaktiv"}`: without the
+`{standalone = "quarto add Erasmus-CTM/pyodide-interaktiv@feature/shared-feedback-integration"}`: without the
 package it uses the ctm-libs next to it, and when that is missing or too old
 the render names this command. Projects that commit `_extensions/`, or that
 allow only `_extensions/Erasmus-CTM/pyodide-interaktiv` in `.gitignore`, add

@@ -67,7 +67,7 @@ function ctm.filters()
     {Callout = function(c) return ctm.feedback.markCallout(c) end},
   }
   for _, pass in ipairs(ctm.ui.passes()) do filters[#filters + 1] = pass end
-  filters[#filters + 1] = {Pandoc = function(doc) return ctm.feedback.prepare(doc) end}
+  filters[#filters + 1] = {Pandoc = function(doc) ctm.assets.check(doc); return ctm.feedback.prepare(doc) end}
   return filters
 end
 

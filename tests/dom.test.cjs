@@ -306,3 +306,56 @@ test('policy summary uses the same runtime defaults and per-step limits as feedb
   const plain=F.applyPolicy('plain-text',{task:'Review text',feedback:{maxIssues:7}},1,{});
   assert.equal(text.querySelectorAll('td')[2].textContent,String(plain.feedback.maxIssues));w.close();
 });
+
+test('feedback math loads the page\'s pinned KaTeX through CTMAssets, local in an offline build', async () => {
+  const {F, w} = page('<div class="body"><span class="ai-feedback-math" data-tex="x^2"></span></div>');
+  const requested = [];
+  w.CTMAssets = {url: (name, file) => { requested.push([name, file]); return 'https://example.invalid/_ctm-assets/npm/katex@0.16.47/' + file; }};
+  try {
+    await F.typesetFeedback(w.document.querySelector('.body')).catch(() => {});  // jsdom cannot import the module
+    assert.deepEqual(requested, [['katex', '']]);
+    const sheets = [...w.document.querySelectorAll('link[rel="stylesheet"]')].map(link => link.href);
+    assert.deepEqual(sheets, ['https://example.invalid/_ctm-assets/npm/katex@0.16.47/dist/katex.min.css']);
+    assert.doesNotMatch(w.document.documentElement.outerHTML, /jsdelivr/);
+  } finally { w.close(); }
+});
+
+test('feedback math without CTM assets keeps the KaTeX release line', async () => {
+  const {F, w} = page('<div class="body"><span class="ai-feedback-math" data-tex="x^2"></span></div>');
+  try {
+    await F.typesetFeedback(w.document.querySelector('.body')).catch(() => {});
+    assert.deepEqual([...w.document.querySelectorAll('link[rel="stylesheet"]')].map(link => link.href),
+      ['https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css']);
+  } finally { w.close(); }
+});
+
+test('a migrated legacy config, API key included, is removed from both storages when the settings are saved', () => {
+  const {F, w} = page();
+  w.localStorage.setItem('math-exercise-llm-config', JSON.stringify({baseUrl: 'https://old.invalid', apiKey: 'sk-LEGACY-SECRET'}));
+  w.sessionStorage.setItem('math-exercise-llm-config', JSON.stringify({baseUrl: 'https://old.invalid', apiKey: 'sk-LEGACY-SECRET'}));
+  w.localStorage.setItem('qpyodide-feedback-config', JSON.stringify({baseUrl: 'https://other.invalid'}));
+  try {
+    const dialog = F.buildSettings();
+    const buttons = [...dialog.querySelectorAll('button')];
+    buttons.find(b => /math-exercise/.test(b.textContent)).click();
+    const storage = [...dialog.querySelectorAll('select')].find(s => [...s.options].some(o => o.value === 'session') && [...s.options].some(o => o.value === 'local'));
+    storage.value = 'session';
+    buttons.find(b => b.textContent === 'Save settings').click();
+    assert.equal(JSON.parse(w.sessionStorage.getItem('ai-feedback-config-v1')).apiKey, 'sk-LEGACY-SECRET');
+    assert.equal(w.localStorage.getItem('ai-feedback-config-v1'), null);
+    assert.equal(w.localStorage.getItem('math-exercise-llm-config'), null);
+    assert.equal(w.sessionStorage.getItem('math-exercise-llm-config'), null);
+    // A record that was not migrated stays importable.
+    assert.notEqual(w.localStorage.getItem('qpyodide-feedback-config'), null);
+  } finally { w.close(); }
+});
+
+test('saving settings without migrating keeps the legacy records importable', () => {
+  const {F, w} = page();
+  w.localStorage.setItem('math-exercise-llm-config', JSON.stringify({baseUrl: 'https://old.invalid'}));
+  try {
+    const dialog = F.buildSettings();
+    [...dialog.querySelectorAll('button')].find(b => b.textContent === 'Save settings').click();
+    assert.notEqual(w.localStorage.getItem('math-exercise-llm-config'), null);
+  } finally { w.close(); }
+});
