@@ -32,6 +32,20 @@ test('per-call timeout and cancellation stop the actual request and reject late 
  await assert.rejects(client.complete([{role:'user',content:'Generate'}],{generation:true,timeoutMs:5}),e=>e.code==='TIMEOUT');
  const controller=new AbortController();const pending=client.complete([{role:'user',content:'Generate'}],{generation:true,signal:controller.signal});controller.abort();await assert.rejects(pending,e=>e.code==='ABORTED');
 });
+test('a correction retry gets a fresh time budget instead of the rest of the first call',async()=>{
+ let calls=0;const slow=(text)=>new Promise(resolve=>setTimeout(()=>resolve(response(text)),60));
+ const client=F.createClient({baseUrl:'https://provider.invalid/v1',model:'reasoning'},{fetch:async()=>{calls++;return slow(calls===1?'not json':'{"question":"Q"}');}});
+ const result=await client.complete([{role:'user',content:'Generate'}],{generation:true,timeoutMs:100,validate:text=>{try{JSON.parse(text);return '';}catch{return 'Return JSON.';}}});
+ assert.equal(result.text,'{"question":"Q"}');assert.equal(calls,2);
+});
+test('generation allows five minutes per model call by default',async()=>{
+ const delays=[];const realSetTimeout=global.setTimeout;
+ global.setTimeout=(fn,ms,...rest)=>{delays.push(ms);return realSetTimeout(fn,1e9,...rest);};
+ try{const client=F.createClient({baseUrl:'https://provider.invalid/v1',model:'reasoning'},{fetch:async()=>response('{"question":"Q"}')});
+  await client.complete([{role:'user',content:'Generate'}],{generation:true});await client.complete([{role:'user',content:'Feedback'}]);}
+ finally{global.setTimeout=realSetTimeout;}
+ assert.deepEqual(delays,[300000,60000]);
+});
 test('changing generation-only fields does not reset a teaching hint counter',async()=>{
  const w=new JSDOM('<button>Feedback</button><div id="out"></div>',{url:'https://course.invalid/task',runScripts:'outside-only'}).window;w.AbortController=AbortController;
  for(const file of ['feedback-core.js','feedback-dom.js','ai-feedback.js'])w.eval(fs.readFileSync(path.join(__dirname,'../_extensions/ctm-libs/feedback',file),'utf8'));

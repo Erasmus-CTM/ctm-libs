@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Generation requests may take 300 seconds instead of 180, and the time budget
+  now applies to each provider request: a corrective retry after a rejected
+  reply starts a fresh budget instead of inheriting what was left of the first
+  call. Reasoning models used to time out regularly when a retry was needed.
+  Ordinary feedback keeps 60 seconds per request.
 - Shared Monaco preparation guards WebKit's proactive clipboard workaround
   when the API is unavailable or exam output is active. Both Python editors
   retain normal copy and selectable-text fallbacks without vendor-byte edits.
