@@ -1,7 +1,6 @@
 name: Production MathJax render regression
 on:
-  push:
-    branches: [consolidation/2026-10-step5-assets-union]
+  # The branch it was written for is merged; pull requests run it.
   pull_request:
 permissions:
   contents: read
