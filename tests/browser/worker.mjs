@@ -84,8 +84,9 @@ function cdnServer() {
     }
     const slice = body.subarray(start, end + 1);
     headers['Content-Length'] = slice.length;
-    const entry = {t: Date.now(), version, file: name, range: req.headers.range || null, status, size: slice.length};
+    const entry = {t: Date.now(), method: req.method, version, file: name, range: req.headers.range || null, status, size: slice.length};
     state.log.push(entry);
+    if (req.method === 'HEAD') { res.writeHead(status, headers); res.end(); return; }
     if (state.stall && name.startsWith(state.stall)) { entry.stalled = true; res.writeHead(status, headers); return; }   // headers, then silence
     setTimeout(() => {
       res.writeHead(status, headers);
@@ -107,7 +108,7 @@ function cdnServer() {
 function pageServer() {
   return http.createServer((req, res) => {
     const [, mode, name = 'index.html'] = new URL(req.url, 'http://x').pathname.split('/');
-    const files = {'index.html': null, 'pyodide-worker.js': path.join(LIB, 'pyodide-worker.js'), 'coi-serviceworker.js': path.join(LIB, 'coi-serviceworker.js')};
+    const files = {'index.html': null, 'pyodide-worker.js': path.join(LIB, 'pyodide-worker.js'), 'pyodide-worker-core.js': path.join(LIB, 'pyodide-worker-core.js'), 'coi-serviceworker.js': path.join(LIB, 'coi-serviceworker.js')};
     if (!['h', 's'].includes(mode) || !(name in files)) { res.writeHead(404); res.end(); return; }
     const headers = {'Content-Type': name.endsWith('.js') ? 'text/javascript' : 'text/html', 'Cache-Control': 'no-store'};
     if (mode === 'h') { headers['Cross-Origin-Opener-Policy'] = 'same-origin'; headers['Cross-Origin-Embedder-Policy'] = 'credentialless'; }
@@ -174,7 +175,8 @@ async function start(page, options) {
   }, options);
 }
 const waitSetup = (page, ms = 300000) => page.waitForFunction(() => window.__w.setup !== undefined, null, {timeout: ms, polling: 200}).then(() => page.evaluate(() => ({setup: window.__w.setup, error: window.__w.setupError})));
-const wheels = since => cdn.state.log.slice(since).filter(entry => /\.(whl|zip|tar)$/.test(entry.file) && entry.file !== 'python_stdlib.zip');
+const wheelRequests = since => cdn.state.log.slice(since).filter(entry => /\.(whl|zip|tar)$/.test(entry.file) && entry.file !== 'python_stdlib.zip');
+const wheels = since => wheelRequests(since).filter(entry => entry.method === 'GET');
 
 async function cacheScenario(mode, version, variant = 'full/') {
   // N5 and the browser cache: the prefetch requests exactly the URLs that
@@ -194,15 +196,14 @@ async function cacheScenario(mode, version, variant = 'full/') {
     // pyodide_http.patch_all() ran: requests' adapter is pyodide_http's.
     const patched = await page.evaluate(() => window.__w.proxy.runPythonAsync('import urllib.request, pyodide_http\nurllib.request.urlopen.__module__'));
     assert.match(patched, /pyodide_http/);
-    report.push(`cache ${mode} ${version}: ready ${Math.round(ready.ready)} ms, stage 2 ${Math.round(done.setup)} ms, ${requests.length} range requests over ${files.length} files, 0 full requests`);
+    report.push(`cache ${mode} ${version}: ready ${Math.round(ready.ready)} ms, stage 2 ${Math.round(done.setup)} ms, ${requests.length} range GET payloads over ${files.length} files, 0 full GET payloads`);
   });
 }
 
 async function cdnScenario(mode) {
-  // jsDelivr's wheel responses (state.jsdelivr): stage 2 installs without a
-  // single full wheel request, and a second visit requests no wheel at all
-  // (the worker's own cache). The worker before the fix re-downloaded every
-  // wheel inside Pyodide's lock here (50 wheel requests, then 51).
+  // Encoded jsDelivr responses: HEAD selects one complete prefetch per wheel,
+  // then installation uses those verified bytes without another GET. A second
+  // visit uses the worker's own cache with no GET or HEAD wheel requests.
   cdn.state.jsdelivr = true;
   const packages = await lock(VERSION);
   const files = closure(packages, ['pyodide-http', 'micropip', 'matplotlib']);
@@ -215,16 +216,18 @@ async function cdnScenario(mode) {
       const installed = await page.evaluate(() => window.__w.proxy.runPythonAsync('import importlib.util, json\njson.dumps([importlib.util.find_spec(m) is not None for m in ("matplotlib", "pyodide_http", "micropip", "packaging")])'));
       assert.deepEqual(JSON.parse(installed), [true, true, true, true]);
       const first = wheels(mark);
-      assert.deepEqual(first.filter(entry => !entry.range).map(entry => entry.file), [], 'no full wheel request: every install took the verified bytes');
-      assert.deepEqual([...new Set(first.map(entry => entry.file))].sort(), [...files].sort());
+      assert.ok(first.every(entry => !entry.range), 'encoded representations use complete prefetches');
+      assert.deepEqual(first.map(entry => entry.file).sort(), [...files].sort(), 'exactly one payload per wheel: installs never download again');
+      const probes = wheelRequests(mark).filter(entry => entry.method === 'HEAD');
+      assert.deepEqual(probes.map(entry => entry.file).sort(), [...files].sort(), 'one representation probe per wheel');
       await page.reload();
       if (mode === 's') await page.waitForFunction(() => globalThis.crossOriginIsolated === true, null, {timeout: 30000});
       const again = cdn.state.log.length;
       await start(page, {indexURL: index(VERSION), background: BACKGROUND});
       const second = await waitSetup(page);
       assert.equal(second.error, undefined, second.error);
-      assert.deepEqual(wheels(again).map(entry => entry.file), [], 'a second visit requests no wheel');
-      report.push(`cdn ${mode} (jsDelivr's headers: weak ETag, Vary, no Accept-Ranges): stage 2 ${Math.round(done.setup)} ms with ${first.length} range requests, 0 full; second visit ${Math.round(second.setup)} ms with 0 wheel requests`);
+      assert.deepEqual(wheelRequests(again).map(entry => entry.file), [], 'a second visit makes no GET or HEAD wheel request');
+      report.push(`cdn ${mode} (jsDelivr's headers: weak ETag, Vary, no Accept-Ranges): stage 2 ${Math.round(done.setup)} ms with ${probes.length} HEAD probes and ${first.length} complete prefetch GETs, 0 duplicate install GETs; second visit ${Math.round(second.setup)} ms with 0 GET or HEAD wheel requests`);
     });
   } finally {
     cdn.state.jsdelivr = false;
@@ -346,7 +349,7 @@ async function isolationScenario() {
       proxy.interrupt();
       const stopped = await looping;
       proxy.clearInterrupt();
-      return {answer, prompt: window.__prompt, stopped: /KeyboardInterrupt/.test(stopped), after: await proxy.runPythonAsync('2 + 2')};
+      return {answer, prompt: window.__prompt, stopped: /RuntimeError: Python operation interrupted/.test(stopped), after: await proxy.runPythonAsync('2 + 2')};
     });
     assert.deepEqual(result, {answer: 'Ada', prompt: 'Name? ', stopped: true, after: 4});
     report.push('isolation: coi-serviceworker.js, input() with its prompt, Stop by interrupt');

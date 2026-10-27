@@ -8,8 +8,11 @@ return function(ctm)
 
   -- Registers the ctm-runtime dependency (a classic script in the head).
   function M.use()
+    ctm.locale.use("common")
     ctm.assets.use()
     ctm.deps.html({name = "ctm-runtime", scripts = {"runtime/pyodide-runtime.js"}})
+    ctm.deps.html({name = "ctm-worker", scripts = {"runtime/pyodide-worker.js"},
+      resources = {ctm.path("runtime", "pyodide-worker-core.js")}})
   end
 
   -- Seconds after which a running check offers Stop (worker runtimes only):
@@ -48,7 +51,6 @@ return function(ctm)
   function M.worker()
     if not quarto.doc.is_format("html") then return end
     M.use()
-    ctm.deps.html({name = "ctm-worker", scripts = {"runtime/pyodide-worker.js"}})
     if registered then return end
     registered = true
     local source = io.open(ctm.path("runtime", "coi-serviceworker.js"), "r")
@@ -69,6 +71,12 @@ return function(ctm)
       offset = quarto.project.offset
     end
     quarto.doc.include_text("in-header", '<script src="' .. offset .. '/coi-serviceworker.js"></script>')
+  end
+
+  -- Standalone consumers require this P13 capability rather than silently
+  -- accepting a library whose runtime still evaluates Python on the page.
+  function M.page()
+    M.worker()
   end
 
   return M

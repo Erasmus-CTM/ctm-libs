@@ -12,7 +12,7 @@ function page({math, fonts, state='loading', existing}={}) {
   if (existing) w.MathExerciseRuntime = existing;
   if (math) w.MathJax = {startup:{promise:math}};
   vm.runInNewContext(source, w);
-  return {api:w.MathExerciseRuntime, errors, load:()=>{document.readyState='complete'; (listeners.load||[]).forEach(fn=>fn());}};
+  return {w, emit:name=>(listeners[name]||[]).forEach(fn=>fn()), api:w.MathExerciseRuntime, errors, load:()=>{document.readyState='complete'; (listeners.load||[]).forEach(fn=>fn());}};
 }
 test('initial UI closes after load, shares one barrier, then waits UI, MathJax and discovered fonts', async()=>{
   const ui=deferred(), math=deferred(), fonts=deferred(), p=page({math:math.promise, fonts:fonts.promise});
@@ -49,4 +49,19 @@ test('load seals initial registration even when isolation needed no barrier call
   assert.throws(()=>p.api.trackInitialUI(Promise.resolve()),/registered before window.load/);
   const late=page({state:'complete'});
   assert.throws(()=>late.api.trackInitialUI(Promise.resolve()),/registered before window.load/);
+});
+
+
+test('standalone COI reload waits for initial UI and never reloads edited work or the IDE coordinator', async()=>{
+  const p=page(), ui=deferred(), saved=new Map();let reloads=0;
+  p.w.location={reload:()=>reloads++};p.w.sessionStorage={setItem:(k,v)=>saved.set(k,v)};
+  p.api.trackInitialUI(ui.promise);p.emit('coi-sw-ready');p.load();await tick();assert.equal(reloads,0);
+  ui.resolve();await tick();assert.equal(reloads,1);assert.equal(saved.get('qpyodide-coi-reload-pending'),'1');
+  for(const scenario of ['input','pointerdown','keydown','IDE','isolated']) {
+    const q=page({state:'complete'});let count=0;q.w.location={reload:()=>count++};q.w.sessionStorage={setItem(){}};
+    if(scenario==='IDE')q.w.qpyodideCoiSettled=Promise.resolve();
+    else if(scenario==='isolated')q.w.crossOriginIsolated=true;
+    else q.emit(scenario);
+    q.emit('coi-sw-ready');await tick();assert.equal(count,0,scenario);
+  }
 });

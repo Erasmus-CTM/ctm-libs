@@ -55,10 +55,16 @@ const server = http.createServer((request, response) => {
     response.end(runtime);
     return;
   }
+  const workerName = request.url.slice(1);
+  if (['pyodide-worker.js', 'pyodide-worker-core.js'].includes(workerName)) {
+    response.writeHead(200, {'content-type': 'text/javascript'});
+    response.end(fs.readFileSync(path.join(ROOT, '_extensions/ctm-libs/runtime', workerName)));
+    return;
+  }
   response.writeHead(200, {'content-type': 'text/html'});
   response.end(request.url === '/previous'
     ? `<!doctype html><html><head><script src="https://cdn.jsdelivr.net/pyodide/v${PREVIOUS}/full/pyodide.js"></script></head><body></body></html>`
-    : '<!doctype html><html><head><script src="/runtime.js"></script></head><body></body></html>');
+    : '<!doctype html><html><head><script src="/runtime.js"></script><script src="/pyodide-worker.js"></script></head><body></body></html>');
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? {executablePath: process.env.CHROMIUM_PATH} : {});
@@ -70,7 +76,7 @@ async function run(route, load) {
       ? await globalThis.MathExerciseRuntime.ensurePyodide()
       : await globalThis.loadPyodide({indexURL: `https://cdn.jsdelivr.net/pyodide/v${previous}/full/`});
     await py.loadPackage('sympy');
-    const version = py.runPython('import sys, sympy; f"{sys.version_info.major}.{sys.version_info.minor} {sympy.__version__}"');
+    const version = await py.runPythonAsync('import sys, sympy; f"{sys.version_info.major}.{sys.version_info.minor} {sympy.__version__}"');
     return {version, results: JSON.parse(await py.runPythonAsync(battery))};
   }, {load, battery: BATTERY, previous: PREVIOUS});
 }

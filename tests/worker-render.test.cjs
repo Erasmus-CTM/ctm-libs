@@ -36,6 +36,9 @@ test('worker(): dependencies once per page, coi-serviceworker.js at the output r
       assert.deepEqual(tags, [offset + '/coi-serviceworker.js'], page);
       const scripts = [...html.matchAll(/<script src="[^"]*quarto-contrib\/(ctm-runtime|ctm-worker)-[^/]+\/([^"]+)"/g)].map(m => m[1] + '/' + m[2]);
       assert.deepEqual(scripts, ['ctm-runtime/pyodide-runtime.js', 'ctm-worker/pyodide-worker.js'], page);
+      const wrapper = html.match(/<script src="([^"]*ctm-worker-[^/]+\/pyodide-worker\.js)"/)[1];
+      const core = path.resolve(path.dirname(path.join(site, page)), path.dirname(wrapper), 'pyodide-worker-core.js');
+      assert.deepEqual(fs.readFileSync(core), fs.readFileSync(path.join(C.library, 'runtime/pyodide-worker-core.js')), page + ' self-hosted worker entry');
       assert.ok(html.indexOf('ctm-worker/pyodide-worker.js') < html.indexOf('</head>') || html.search(/ctm-worker-[^/]+\/pyodide-worker\.js/) < html.indexOf('</head>'), page);
     }
   } finally { fs.rmSync(dir, {recursive: true, force: true}); }

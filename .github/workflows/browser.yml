@@ -20,7 +20,7 @@ permissions:
 jobs:
   authorize:
     name: Authorize broad browser campaign
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Require explicit campaign confirmation
         env:
@@ -28,35 +28,43 @@ jobs:
         run: test "$CONFIRMATION" = 'broad testing campaign'
   runtime:
     needs: authorize
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
       - run: npm install --no-save --ignore-scripts playwright@1.55.1
-      - run: npx playwright install --with-deps chromium
+      - name: Install the supported browser with the mainline mirror fix
+        timeout-minutes: 5
+        run: |
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          npx playwright install --with-deps chromium
       - name: Runtime smoke test
         run: node tests/browser/runtime-smoke.mjs
       - name: SymPy results equal those of the previous Pyodide
         run: node tests/browser/sympy-parity.mjs
   worker:
     needs: authorize
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
       - run: npm install --no-save --ignore-scripts playwright@1.55.1
-      - run: npx playwright install --with-deps chromium
+      - name: Install the supported browser with the mainline mirror fix
+        timeout-minutes: 5
+        run: |
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          npx playwright install --with-deps chromium
       - name: CTMWorker in Chromium
         env:
           PYODIDE_OLD: '0.27.2'
         run: node tests/browser/worker.mjs
   ui:
     needs: authorize
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -70,7 +78,11 @@ jobs:
         with:
           version: '1.8.27'
       - run: npm install --no-save --ignore-scripts playwright@1.55.1 coi-serviceworker@0.1.7
-      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Install the supported browser with the mainline mirror fix
+        timeout-minutes: 5
+        run: |
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          npx playwright install --with-deps ${{ matrix.browser }}
       - name: Links into tabs and reveals, the switch (${{ matrix.browser }})
         run: node tests/browser/ui.mjs ${{ matrix.browser }}
 
