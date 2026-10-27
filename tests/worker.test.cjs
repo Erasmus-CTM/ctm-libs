@@ -52,7 +52,7 @@ test('a plugin\'s stage-1 Python runs once the interpreter is ready; setPrompt r
   status[0] = 3;  // aborted before the wait: Atomics.wait returns at once
   w.context.Atomics = {store() {}, wait() {}, load: () => 3};
   assert.equal(w.context.stdin(), null);
-  assert.deepEqual(w.messages.find(m => m.type === 'inputRequired'), {type: 'inputRequired', prompt: 'Name? '});
+  assert.deepEqual(w.messages.find(m => m.type === 'inputRequired'), {type: 'inputRequired', prompt: 'Name? ', operationID: null});
 });
 
 test('the main-thread proxy: the documented keys, the globals it publishes, the plugin\'s commands', async () => {
@@ -195,6 +195,10 @@ test('cross-origin isolated pages get the interrupt and input buffers; a failure
       proxy.provideInput('Ada');
       assert.equal(proxy.inputStatusBuf[0], 2);
       assert.equal(new TextDecoder().decode(proxy.inputDataBuf.slice(0, 3)), 'Ada');
+      proxy.inputStatusBuf[0] = 1;
+      proxy.interrupt();
+      assert.equal(proxy.inputStatusBuf[0], 3, 'waiting input is aborted');
+      assert.equal(proxy.interruptBuffer[0], 0, 'input abort must not deliver a second exception during EOF handling');
     }
   }
 });
