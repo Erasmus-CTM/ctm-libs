@@ -5,6 +5,10 @@
 - Shared Monaco preparation guards WebKit's proactive clipboard workaround
   when the API is unavailable or exam output is active. Both Python editors
   retain normal copy and selectable-text fallbacks without vendor-byte edits.
+- With local assets (offline and exam builds) the worker points micropip's
+  package index at a path of the site that does not exist, whenever micropip
+  is imported: `micropip.install` of a package outside the served lock fails
+  on the site instead of asking PyPI; locked packages install as before.
 - Remove the ai-feedback extension alias and the metadata bridge for
   pyodide-interaktiv 1.8 (consolidation L3x). Install CTM Assessment and list
   `ctm-assessment`, or use standalone pyodide-interaktiv 1.9 or later.
