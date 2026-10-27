@@ -73,50 +73,31 @@ test('reuses top-level lexical instances from another classic script', async () 
   assert.equal(context.qpyodideInstance, undefined);
 });
 
-test('shares one browser load and instance across concurrent callers', async () => {
-  let loads = 0;
-  let script;
-  const document = documentStub((tag) => { script = tag; });
-  const instance = { name: 'shared' };
-  const context = runtime({ document });
+test('standalone browser calls share the page worker and never load main-thread Python', async () => {
+  let started = null, loads = 0;
+  const instance = {isWorkerProxy: true};
+  const document = documentStub(() => { throw new Error('main-thread script loaded'); });
+  const context = runtime({document, loadPyodide() { throw new Error('main-thread Python'); },
+    CTMWorker: {page() { if (!started) { loads++; started = Promise.resolve(instance); } return started; }}});
   const api = context.MathExerciseRuntime;
-  const first = api.ensurePyodide();
-  const second = api.ensurePyodide();
-  assert.equal(document.scripts.length, 1);
-  assert.equal(script.src, cdn + 'pyodide.js');
-  context.loadPyodide = async (opts) => {
-    loads++;
-    assert.equal(opts.indexURL, cdn);
-    return instance;
-  };
-  script.dispatch('load');
-  assert.deepEqual(await Promise.all([first, second]), [instance, instance]);
+  assert.deepEqual(await Promise.all([api.ensurePyodide(), api.ensurePyodide()]), [instance, instance]);
   assert.equal(loads, 1);
-  assert.equal(context.mainPyodide, instance);
-  assert.equal(await api.ensurePyodide(), instance);
-  assert.equal(loads, 1);
+  assert.equal(document.scripts.length, 0);
 });
 
-test('a failed script or initialization clears the shared promise for retry', async () => {
-  const document = documentStub(() => {});
-  const context = runtime({ document });
-  const api = context.MathExerciseRuntime;
-  const first = api.ensurePyodide();
-  const failedTag = document.scripts[0];
-  failedTag.dispatch('error');
-  await assert.rejects(first, /Failed to load/);
-  assert.equal(context.__qExercisePyodide, undefined);
-  assert.equal(document.scripts.length, 0);
+test('a browser missing its worker dependency fails without a main-thread fallback', async () => {
+  const context = runtime({document: documentStub(() => {}), loadPyodide() { throw new Error('must not run'); }});
+  await assert.rejects(context.MathExerciseRuntime.ensurePyodide(), /worker dependency is missing/);
+});
 
+test('a failed browser worker start can be retried by the broker', async () => {
   let attempts = 0;
-  context.loadPyodide = async () => {
-    if (++attempts === 1) throw new Error('temporary init failure');
-    return { ready: true };
-  };
-  await assert.rejects(api.ensurePyodide(), /temporary init failure/);
-  assert.equal(context.__qExercisePyodide, undefined);
-  assert.equal((await api.ensurePyodide()).ready, true);
-  assert.equal(attempts, 2);
+  const instance = {isWorkerProxy: true};
+  const context = runtime({document: documentStub(() => {}), CTMWorker: {page() {
+    return ++attempts === 1 ? Promise.reject(new Error('Worker failed')) : Promise.resolve(instance);
+  }}});
+  await assert.rejects(context.MathExerciseRuntime.ensurePyodide(), /Worker failed/);
+  assert.equal(await context.MathExerciseRuntime.ensurePyodide(), instance);
 });
 
 test('worker imports Pyodide without reading document or window', async () => {

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Shared Monaco preparation guards WebKit's proactive clipboard workaround
+  when the API is unavailable or exam output is active. Both Python editors
+  retain normal copy and selectable-text fallbacks without vendor-byte edits.
 - Remove the ai-feedback extension alias and the metadata bridge for
   pyodide-interaktiv 1.8 (consolidation L3x). Install CTM Assessment and list
   `ctm-assessment`, or use standalone pyodide-interaktiv 1.9 or later.
@@ -311,3 +314,9 @@ locator). Course authors install CTM Assessment only.
   strings from `locales/feedback.js` and keeps every version in step;
   `scripts/check-locales.py` checks the catalogues.
 - Package `@erasmus-ctm/ctm-libs`.
+
+- P13: standalone math/Python pages use the shared self-hosted worker, with
+  cross-component transactions, bounded owned output, explicit input capability,
+  shared status/Retry and Stop/restart. Stop cancels queued work without replay.
+  A graceful stop can keep variables, so its generic message no longer asserts
+  a restart; the worker broker reports a hard restart/reset separately.
