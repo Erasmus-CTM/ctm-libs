@@ -5,6 +5,10 @@
 - Shared Monaco preparation guards WebKit's proactive clipboard workaround
   when the API is unavailable or exam output is active. Both Python editors
   retain normal copy and selectable-text fallbacks without vendor-byte edits.
+- With local assets (offline and exam builds) the worker points micropip's
+  package index at a path of the site that does not exist, whenever micropip
+  is imported: `micropip.install` of a package outside the served lock fails
+  on the site instead of asking PyPI; locked packages install as before.
 - `MathExerciseRuntime.ensurePyodide` in a worker loads Pyodide only from the
   base its page passes, `ensurePyodide({indexURL})` with the page's
   `MathExerciseRuntime.indexURL`; without it the call fails and nothing
@@ -18,6 +22,18 @@
   `ctm-assessment`, or use standalone pyodide-interaktiv 1.9 or later.
   The generated forwarder template stays; stale ai-feedback 0.8.1 folders
   still trigger the migration message when listed beside CTM components.
+- AI feedback typesets its math with the page's pinned KaTeX through
+  `CTMAssets` (the local copy in a local-asset build) instead of the floating
+  `katex@0.16` from jsDelivr; pages without CTM assets keep the release line.
+- A local-asset build of a page with JSXGraph boards stops with a message:
+  a board is a `data:` frame, where the local MathJax cannot load (until
+  step 5b). An author HTTP `jsxgraph.src_mjx_preload` is refused in local
+  mode like the other board URLs. The local-asset messages no longer name
+  an installer option that does not exist.
+- After the learner migrates a legacy math-exercise or pyodide-interaktiv
+  feedback configuration and saves, the legacy record, which can hold an
+  API key, is removed from both storages; unmigrated records stay importable.
+- The filter-order message includes ctm-stack, as the package runs it.
 
 
 ### Added for components

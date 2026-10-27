@@ -6,7 +6,7 @@ local here = debug.getinfo(1, "S").source:sub(2):match("^(.*)[/\\]")
 local entry = pandoc.path.join({pandoc.path.directory(here), "ctm-libs", "lua", "ctm.lua"})
 local f = io.open(entry, "r")
 assert(f, "ai-feedback is now part of pyodide-interaktiv and of CTM Assessment, and their library ctm-libs is missing next to "
-  .. here .. ". Install pyodide-interaktiv again (quarto add Erasmus-CTM/pyodide-interaktiv) or CTM Assessment "
+  .. here .. ". Install pyodide-interaktiv again (quarto add Erasmus-CTM/pyodide-interaktiv@feature/shared-feedback-integration) or CTM Assessment "
   .. "(quarto add https://erasmus-ctm.github.io/ctm-assessment/ctm-assessment.tar.gz).")
 f:close()
 return dofile(entry).feedback

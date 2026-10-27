@@ -40,7 +40,7 @@ const table = JSON.parse(fs.readFileSync(path.join(C.library, 'assets.json'), 'u
 const runtime = fs.readFileSync(path.join(C.library, 'runtime', 'pyodide-runtime.js'), 'utf8');
 const pyVersion = runtime.match(/var indexURL = '[^']+\/v([^/]+)\/full\/';/)[1];
 function render(dir) { return C.render(dir, [], {CTM_COMPONENT_DEV: '1'}); }
-function project({local = true, resources = true, theme = true, extra = '', front = '', nested = false, manifest = true} = {}) {
+function project({local = true, resources = true, theme = true, extra = '', front = '', nested = false, manifest = true, body = ''} = {}) {
   const dir = C.tempdir('ctm-assets-');
   C.install(dir); C.installProbe(dir);
   const file = nested ? 'sub/page.qmd' : 'page.qmd';
@@ -51,7 +51,7 @@ function project({local = true, resources = true, theme = true, extra = '', fron
       'filters: [ctm-libs, probe]\n' + (theme ? 'format:\n  html:\n    theme: [default, offline.scss]\n' : 'format: html\n') +
       'ctm-assessment:\n  assets: ' + (local ? 'local' : 'cdn') + '\nai-feedback:\n  enabled: false\n' + extra,
     'offline.scss': '/*-- scss:defaults --*/\n$web-font-path: false;\n',
-    [file]: '---\ntitle: Asset probe\n' + front + '---\n\n$x^2$\n' + C.probe('asset', 'return {mode=ctm.assets.mode(), url=ctm.assets.url("pyodide"), katex=ctm.assets.url("katex", "dist/katex.mjs")}'),
+    [file]: '---\ntitle: Asset probe\n' + front + '---\n\n$x^2$\n' + body + C.probe('asset', 'return {mode=ctm.assets.mode(), url=ctm.assets.url("pyodide"), katex=ctm.assets.url("katex", "dist/katex.mjs")}'),
     ['_ctm-assets/pyodide/' + pyVersion + '/pyodide-lock.json']: JSON.stringify({packages: {numpy: {}}})
   });
   if (manifest) C.write(dir, {'_ctm-assets/manifest.json': JSON.stringify({v:1,versions,files:{}})});
@@ -97,7 +97,9 @@ test('local preflight rejects missing bundle, wrong versions, missing resources/
     [{front:'pyodide:\n  build-variant: debug\n'}, /pyodide\.build-variant/],
     [{extra:'jsxgraph:\n  src_jxg: https://custom.test/board.js\n'}, /author HTTP jsxgraph\.src_jxg/],
     [{extra:'jsxgraph:\n  mjx_fonts: https://custom.test/fonts/\n'}, /author HTTP jsxgraph\.mjx_fonts/],
-    [{extra:'pyodide:\n  packages: [not-in-bundle]\n'}, /outside the local subset/]
+    [{extra:'jsxgraph:\n  src_mjx_preload: https://custom.test/preload.js\n'}, /author HTTP jsxgraph\.src_mjx_preload/],
+    [{extra:'pyodide:\n  packages: [not-in-bundle]\n'}, /outside the local subset/],
+    [{body:'\n```{.jsxgraph}\nvar board = 1;\n```\n'}, /do not support JSXGraph boards/]
   ];
   for (const [options, message] of cases) {
     const p=project(options);

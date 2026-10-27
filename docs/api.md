@@ -22,7 +22,7 @@ local ctm = dofile(quarto.utils.resolve_path("ctm-bootstrap.lua"))("math-exercis
 -- A component that also works without the package, with the ctm-libs it ships
 -- (pyodide-interaktiv, decision 5), and needs interface level 2:
 local ctm = dofile(quarto.utils.resolve_path("ctm-bootstrap.lua"))("pyodide-interaktiv",
-  {standalone = "quarto add Erasmus-CTM/pyodide-interaktiv", api = 2})
+  {standalone = "quarto add Erasmus-CTM/pyodide-interaktiv@feature/shared-feedback-integration", api = 2})
 ```
 
 The bootstrap
