@@ -50,10 +50,10 @@ ctm-libs ([details](docs/installation.md#pyodide-interaktiv-on-its-own)).
 ## Formerly ai-feedback
 
 This repository was Erasmus-CTM/ai-feedback; GitHub redirects the old name.
-For CTM Assessment 0.9 the repository keeps a thin `ai-feedback` extension,
-so `quarto add Erasmus-CTM/ai-feedback` and `filters: [ai-feedback]` keep
-working (with one build warning), and so do components released before the
-consolidation. [Details](docs/installation.md#projects-set-up-for-ai-feedback-09x).
+It installs ctm-libs only: the `ai-feedback` extension alias was removed, so
+`filters: [ai-feedback]` no longer works on a fresh installation. Install CTM
+Assessment and list `ctm-assessment`.
+[Details](docs/installation.md#projects-set-up-for-ai-feedback).
 
 [Example source](example.qmd): AI feedback activities with the library alone
 (`filters: [ctm-libs]`), built on every push as the `standalone-example`
