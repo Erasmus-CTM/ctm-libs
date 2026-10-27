@@ -300,7 +300,11 @@
       const abort = () => controller.abort();
       if (options.signal?.aborted) throw new FeedbackError('ABORTED', 'Feedback cancelled.');
       options.signal?.addEventListener('abort', abort, { once: true });
-      const timer = setTimeout(() => { timedOut = true; controller.abort(); }, options.timeoutMs ?? (options.generation ? 180000 : dependencies.timeoutMs ?? 60000));
+      // The budget is per provider request, so a correction or format retry is
+      // a fresh model call rather than the rest of the previous call's time.
+      const budget = options.timeoutMs ?? (options.generation ? 300000 : dependencies.timeoutMs ?? 60000);
+      let timer;
+      const arm = () => { clearTimeout(timer); timer = setTimeout(() => { timedOut = true; controller.abort(); }, budget); };
       const policy = options.generation ? {...modelPolicy(config.model), optionalBody: {}, hasOptionalBody: false, systemPrefix: ''} : modelPolicy(config.model);
       if (policy.incompatible) { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); throw new FeedbackError('CONFIGURATION', 'Choose a chat model, not an embedding model.'); }
       const headers = { 'Content-Type': 'application/json' };
@@ -316,6 +320,7 @@
         for (let attempt = 0; attempt < 5; attempt++) {
           const body = { model: config.model, messages: activeMessages, [tokenField]: options.maxTokens ?? (options.generation ? 16384 : dependencies.maxTokens ?? 8192) };
           if (optional) Object.assign(body, policy.optionalBody);
+          arm();
           const response = await fetcher(base + '/chat/completions', { method: 'POST', headers, body: JSON.stringify(body), signal: controller.signal });
           if (!response.ok) {
             const error = await response.text().catch(() => '');

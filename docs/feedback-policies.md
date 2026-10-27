@@ -203,8 +203,10 @@ builds keep it off. Prose limits steer generation; trusted authored checks must
 also enforce mathematical hard bounds.
 
 Generation client calls use `complete(messages, {generation: true, signal})`:
-180 seconds, 16384 output tokens and stripped complete reasoning blocks before
-validation, without disabling the reasoning model. Per-call `timeoutMs` and
-`maxTokens` override these budgets. Ordinary feedback remains 60 seconds/8192
-and rejects reasoning leakage. `generator-model` sets a generation model;
+300 seconds per model call, 16384 output tokens and stripped complete reasoning
+blocks before validation, without disabling the reasoning model. Per-call
+`timeoutMs` and `maxTokens` override these budgets. Ordinary feedback remains
+60 seconds/8192 and rejects reasoning leakage. The time budget applies to each
+provider request: a correction retry after a rejected reply starts a fresh
+budget instead of inheriting what is left of the first call's. `generator-model` sets a generation model;
 learners may override it in Feedback settings. Copy mode cannot generate.
