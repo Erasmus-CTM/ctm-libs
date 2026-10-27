@@ -3,7 +3,7 @@
 return function(ctm)
   local M = {}
   local config, manifest, registered = nil, nil, false
-  local INSTALL = "Run the CTM Assessment installer with --assets local."
+  local INSTALL = "CTM Assessment's installer has no local-asset option yet: local assets are prepared with its offline tooling (docs/offline-install-preparation.md)."
   local function readJSON(path, message)
     local file = io.open(path, "r")
     if not file then ctm.fail(message .. " " .. INSTALL) end
@@ -127,6 +127,17 @@ return function(ctm)
     local json = quarto.json.encode(current):gsub("<", "\\u003c")
     quarto.doc.include_text("in-header", "<script>globalThis.CTM_ASSETS=" .. json .. ";</script>")
     ctm.deps.html({name = "ctm-assets", scripts = {"assets.js"}})
+  end
+  -- JSXGraph boards are data: frames: inside one, the board's local MathJax
+  -- path has no base and never loads. Until the boards can load local files
+  -- (consolidation step 5b), a local build of a page with boards stops instead
+  -- of publishing boards without their math.
+  function M.check(doc)
+    if not quarto.doc.is_format("html") or M.mode() ~= "local" then return end
+    if ctm.deps.uses(doc).jsxgraph then
+      ctm.fail("ctm-assessment: local assets do not support JSXGraph boards yet (`.jsxgraph` blocks): "
+        .. "a board cannot load the local MathJax. Build this page with CDN assets, or remove its boards.")
+    end
   end
   function M.prepare(meta)
     if not quarto.doc.is_format("html") then return meta end

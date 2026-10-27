@@ -187,17 +187,27 @@
   }
 
   var katexPromise;
+  // The page's pinned KaTeX (local in an offline build), the one math-exercise
+  // loads; the release line on jsDelivr only for a page without CTM assets.
+  function katexAsset() {
+    try {
+      if (window.CTMAssets) return {base: window.CTMAssets.url('katex', ''), module: 'dist/katex.mjs'};
+    } catch (error) {
+      console.warn('ai-feedback: ' + error.message);
+    }
+    return {base: 'https://cdn.jsdelivr.net/npm/katex@0.16/', module: '+esm'};
+  }
   async function typesetFeedback(body) {
     const nodes = [...body.querySelectorAll('.ai-feedback-math')];
     if (!nodes.length) return;
     if (!katexPromise) {
-      const base = 'https://cdn.jsdelivr.net/npm/katex@0.16/';
+      const {base, module: entry} = katexAsset();
       if (![...document.querySelectorAll('link[rel="stylesheet"]')].some(link => link.href === base + 'dist/katex.min.css')) {
         const style = document.createElement('link');
         style.rel = 'stylesheet'; style.href = base + 'dist/katex.min.css'; document.head.append(style);
       }
       // ES modules avoid collisions with Monaco's AMD loader.
-      katexPromise = import(base + '+esm').then(module => module.default).catch(error => { katexPromise = null; throw error; });
+      katexPromise = import(base + entry).then(module => module.default).catch(error => { katexPromise = null; throw error; });
     }
     const katex = await katexPromise;
     if (!body.isConnected) return;

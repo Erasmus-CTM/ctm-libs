@@ -53,8 +53,8 @@ return function(ctm)
   function M.checkOrder(what)
     if not rawget(_G, '__ctmLibsEndRan') then return end
     local message = 'ctm-libs-end.lua ran before ' .. what .. ' on this page. List it last, after every CTM filter, '
-      .. 'as the package does (filters: [ctm-assessment] runs ctm-libs, jsxgraph, math-exercise, py-exercise, '
-      .. 'pyodide-interaktiv, then ctm-libs-end.lua).'
+      .. 'as the package does (filters: [ctm-assessment] runs ctm-libs, jsxgraph, math-exercise, ctm-stack, '
+      .. 'py-exercise, pyodide-interaktiv, then ctm-libs-end.lua).'
     if not ctm.feedback.enabled() then fail(message) end
     if not orderWarned then
       orderWarned = true

@@ -59,10 +59,13 @@
     populate(loadConfig());
     const message = node('p'); message.setAttribute('role', 'status');
     // Existing configurations are offered explicitly; never silently choose among providers.
+    // A migrated legacy record (it can hold an API key) is removed once the
+    // settings are saved, so the storage the learner chose is the only copy.
+    let migrated = null;
     for (const [key, label] of [['math-exercise-llm-config', 'math-exercise'], ['qpyodide-feedback-config', 'Pyodide']]) {
       let saved;
       for (const kind of ['session', 'local']) { try { saved ||= JSON.parse(store(kind)?.getItem(key) || 'null'); } catch {} }
-      if (saved) { const migrate = button(L.legacy + ' ' + label); migrate.onclick = () => populate({ ...saved, mode: saved.mode || 'api' }); form.append(migrate); }
+      if (saved) { const migrate = button(L.legacy + ' ' + label); migrate.onclick = () => { populate({ ...saved, mode: saved.mode || 'api' }); migrated = key; }; form.append(migrate); }
     }
     const models = button(L.models);
     const choices = node('select'), generatorChoices = node('select');
@@ -89,7 +92,12 @@
       } catch (e) { message.textContent = e.message; } finally { models.disabled = false; }
     };
     const save = button(L.save);
-    save.onclick = () => { const cfg = {}; for (const key of ['mode', 'baseUrl', 'apiKey', 'model', 'generatorModel', 'storage']) cfg[key] = fields[key].value.trim(); saveConfig(cfg); message.textContent = L.saved; closeSettings(); };
+    save.onclick = () => {
+      const cfg = {}; for (const key of ['mode', 'baseUrl', 'apiKey', 'model', 'generatorModel', 'storage']) cfg[key] = fields[key].value.trim();
+      saveConfig(cfg);
+      if (migrated) { for (const kind of ['session', 'local']) { try { store(kind)?.removeItem(migrated); } catch {} } migrated = null; }
+      message.textContent = L.saved; closeSettings();
+    };
     form.append(models, choices, generatorChoices, save, message, node('p', L.privacy, 'ai-feedback-notice'));
     settings.append(form);
     if (root.CTMSettings) root.CTMSettings.register('ai', L.settings, settings);
