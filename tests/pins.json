@@ -2,10 +2,10 @@
  "comment": "Commits CI uses. ctm-checkers: the checker library the install, call and render tests use (tests/checkers-*.test.cjs; checked out into _ctm-checkers-source). ctm-assessment: the umbrella's tools/ci/review-dependencies.py, which reads a head commit's CTM-Review-Refs trailer (other commits for review).",
  "ctm-checkers": {
   "repository": "Erasmus-CTM/ctm-checkers",
-  "commit": "8c3db5e670684aeb5e31fcb5b3823e97ca23ae63"
+  "commit": "57823df14c42a83f808f85bf0086a7feacc920cf"
  },
  "ctm-assessment": {
   "repository": "Erasmus-CTM/ctm-assessment",
-  "commit": "9ed46a449f41518d98fbd1b0964f6b3dce1ba0d7"
+  "commit": "f4be5a6c96fa2eabc5ca7daf71dc438575b2a726"
  }
 }
