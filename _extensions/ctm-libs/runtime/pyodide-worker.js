@@ -130,6 +130,48 @@ function registerPlugin(factory) {
 // their downloads: they are fetched in byte ranges outside Pyodide's package
 // lock, paused while a command downloads, and installed one at a time, from
 // the verified bytes (below), while nothing else runs.
+// Local assets: micropip installs only what the served lock has (offline
+// design §5). Its package index, PyPI by default, becomes a path of this site
+// that does not exist, so an unlocked install fails here and never asks PyPI;
+// a meta-path finder applies this whenever micropip is imported.
+const LOCAL_MICROPIP = [
+  "import sys",
+  "class _CTMLocalMicropip:",
+  "    def __init__(self, index):",
+  "        self.index = index",
+  "    def confine(self, module):",
+  "        module.set_index_urls([self.index])",
+  "    def find_spec(self, name, path=None, target=None):",
+  "        if name != 'micropip':",
+  "            return None",
+  "        for finder in sys.meta_path:",
+  "            if finder is self or not hasattr(finder, 'find_spec'):",
+  "                continue",
+  "            spec = finder.find_spec(name, path, target)",
+  "            if spec is not None:",
+  "                break",
+  "        else:",
+  "            return None",
+  "        loader, confine = spec.loader, self.confine",
+  "        class Loader:",
+  "            def create_module(self, spec):",
+  "                return loader.create_module(spec)",
+  "            def exec_module(self, module):",
+  "                loader.exec_module(module)",
+  "                confine(module)",
+  "        spec.loader = Loader()",
+  "        return spec",
+  "def _ctm_confine_micropip(index):",
+  "    finder = _CTMLocalMicropip(index)",
+  "    sys.meta_path.insert(0, finder)",
+  "    if 'micropip' in sys.modules:",
+  "        finder.confine(sys.modules['micropip'])",
+].join("\n");
+function confineMicropip() {
+  const index = new URL("no-package-index", config.indexURL).href;
+  pyodide.runPython(LOCAL_MICROPIP + "\n_ctm_confine_micropip(" + JSON.stringify(index) + ")\ndel _ctm_confine_micropip, _CTMLocalMicropip");
+}
+
 let config = null;
 async function init(cfg) {
   config = cfg;
@@ -164,6 +206,8 @@ async function init(cfg) {
       emitOutput(text, 'stderr');
     }
   });
+
+  if (config.assetsMode === "local") confineMicropip();
 
   // Packages requested by the page (pyodide: packages: [...]): a check may
   // import them, so they belong to stage 1.

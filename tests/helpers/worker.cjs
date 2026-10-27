@@ -57,7 +57,7 @@ function workerContext({plugin = '', pyodide = () => ({}), globals = {}} = {}) {
   const ctx = {};
   const context = vm.createContext({
     console, Promise, Error, Object, Array, JSON, Math, Map, Set, ArrayBuffer, Uint8Array, Int32Array, TextDecoder, TextEncoder, Atomics,
-    setTimeout, clearTimeout, performance,
+    setTimeout, clearTimeout, performance, URL,
     self: {postMessage: message => messages.push(structuredClone(message))},
     ...globals,
     __importPyodide: async indexURL => ({
@@ -70,6 +70,7 @@ function workerContext({plugin = '', pyodide = () => ({}), globals = {}} = {}) {
           loadPackage: async names => { for (const name of [].concat(names)) loaded[name] = 'default channel'; },
           loadPackagesFromImports: async () => {},
           runPythonAsync: async () => undefined,
+          runPython: code => { (ctx.runPython ||= []).push(code); },
           setInterruptBuffer() {},
           toPy: value => value,
           globals: {set() {}, get() { const f = () => ({toJs: () => [], destroy() {}}); f.destroy = () => {}; return f; }},
