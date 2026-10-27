@@ -100,21 +100,47 @@ test('a failed browser worker start can be retried by the broker', async () => {
   assert.equal(await context.MathExerciseRuntime.ensurePyodide(), instance);
 });
 
-test('worker imports Pyodide without reading document or window', async () => {
+test('worker imports Pyodide from the base its page gives, without reading document or window', async () => {
+  const local = 'https://course.test/_ctm-assets/pyodide/1/';
   const instance = { worker: true };
   const imports = [];
   const context = runtime({
     importScripts(src) {
       imports.push(src);
       context.loadPyodide = async ({ indexURL }) => {
-        assert.equal(indexURL, cdn);
+        assert.equal(indexURL, local);
         return instance;
       };
     },
   });
-  assert.equal(await context.MathExerciseRuntime.ensurePyodide(), instance);
-  assert.deepEqual(imports, [cdn + 'pyodide.js']);
+  assert.equal(await context.MathExerciseRuntime.ensurePyodide({ indexURL: local }), instance);
+  assert.deepEqual(imports, [local + 'pyodide.js']);
   assert.equal(context.mainPyodide, instance);
+  assert.equal(context.MathExerciseRuntime.indexURL, local);
+  assert.equal(await context.MathExerciseRuntime.ensurePyodide(), instance);
+});
+
+test('a worker without its page\'s base loads nothing: no silent CDN fallback', async () => {
+  const imports = [];
+  const context = runtime({ importScripts(src) { imports.push(src); }, loadPyodide() { throw new Error('loaded'); } });
+  const R = context.MathExerciseRuntime;
+  await assert.rejects(R.ensurePyodide(), /pass the page's MathExerciseRuntime.indexURL/);
+  for (const bad of ['', 'pyodide/', '/pyodide/', 'https://course.test/pyodide', 'https://course.test/p/?x=/', 'blob:https://course.test/1/', 'javascript:alert(1)//', 'https:///', 'https://course.test/a b/', 42]) {
+    await assert.rejects(R.ensurePyodide({ indexURL: bad }), /absolute URL of a folder/, String(bad));
+  }
+  assert.deepEqual(imports, []);
+  assert.equal(context.__qExercisePyodide, undefined);
+});
+
+test('a worker keeps the first base: another one is refused, the same one shares the load', async () => {
+  const instance = {};
+  let loads = 0;
+  const context = runtime({ importScripts() {}, loadPyodide: async () => { loads++; return instance; } });
+  const R = context.MathExerciseRuntime;
+  const first = R.ensurePyodide({ indexURL: cdn });
+  await assert.rejects(R.ensurePyodide({ indexURL: 'https://course.test/_ctm-assets/pyodide/1/' }), new RegExp('already uses ' + cdn));
+  assert.deepEqual(await Promise.all([first, R.ensurePyodide({ indexURL: cdn }), R.ensurePyodide()]), [instance, instance, instance]);
+  assert.equal(loads, 1);
 });
 
 test('a load that never finishes (failed WebAssembly) times out and can be retried', async () => {
@@ -122,7 +148,7 @@ test('a load that never finishes (failed WebAssembly) times out and can be retri
   const ready = { runPythonAsync() {} };
   const context = runtime({ setTimeout, clearTimeout, __qExercisePyodideTimeout: 50,
     loadPyodide: () => (++calls === 1 ? new Promise(() => {}) : Promise.resolve(ready)) });
-  await assert.rejects(context.MathExerciseRuntime.ensurePyodide(), error => error.code === 'pyodide-timeout');
+  await assert.rejects(context.MathExerciseRuntime.ensurePyodide({ indexURL: cdn }), error => error.code === 'pyodide-timeout');
   assert.equal(context.__qExercisePyodide, undefined);
   assert.equal(await context.MathExerciseRuntime.ensurePyodide(), ready);
   assert.equal(calls, 2);

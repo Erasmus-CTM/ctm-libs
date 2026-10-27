@@ -9,6 +9,14 @@
   package index at a path of the site that does not exist, whenever micropip
   is imported: `micropip.install` of a package outside the served lock fails
   on the site instead of asking PyPI; locked packages install as before.
+- `MathExerciseRuntime.ensurePyodide` in a worker loads Pyodide only from the
+  base its page passes, `ensurePyodide({indexURL})` with the page's
+  `MathExerciseRuntime.indexURL`; without it the call fails and nothing
+  loads. Before, a worker (no `CTMAssets` there) fell back to jsDelivr
+  without a word, also when its page used local or exam assets (review
+  2026-11 L18). A worker keeps its first base and refuses another. Pages are
+  unchanged. Workers that load the runtime with `importScripts` (stack-wasm-maxima's
+  prototype at its next ctm-libs pin) pass the page's `indexURL`.
 - Remove the ai-feedback extension alias and the metadata bridge for
   pyodide-interaktiv 1.8 (consolidation L3x). Install CTM Assessment and list
   `ctm-assessment`, or use standalone pyodide-interaktiv 1.9 or later.

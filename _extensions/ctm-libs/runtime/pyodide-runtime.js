@@ -103,7 +103,24 @@
   // Keep the line above as the single version source for Lua and the builder.
   // Resolve lazily: Quarto can emit the page configuration after dependency tags.
   function selectedIndexURL() {
+    if (workerIndexURL) return workerIndexURL;
     return root.CTMAssets && typeof root.CTMAssets.url === 'function' ? root.CTMAssets.url('pyodide') : indexURL;
+  }
+  // A worker has no page configuration and cannot tell local assets from the
+  // CDN: it loads Pyodide only from the base its page gives ensurePyodide.
+  var workerIndexURL;
+  function useWorkerIndexURL(requested) {
+    if (requested === undefined) {
+      if (workerIndexURL || (root.CTMAssets && typeof root.CTMAssets.url === 'function')) return;
+      throw new Error('Pyodide in a worker: pass the page\'s MathExerciseRuntime.indexURL as ensurePyodide({indexURL}).');
+    }
+    if (typeof requested !== 'string' || !/^https?:\/\/[^\/?#\s][^?#\s]*\/$/.test(requested)) {
+      throw new Error('Pyodide in a worker: indexURL must be an absolute URL of a folder (ending in /).');
+    }
+    if (workerIndexURL && workerIndexURL !== requested) {
+      throw new Error('Pyodide in this worker already uses ' + workerIndexURL);
+    }
+    workerIndexURL = requested;
   }
   var LOAD_TIMEOUT = root.__qExercisePyodideTimeout || 180000; // override for tests
 
@@ -167,7 +184,7 @@
     return Promise.race([Promise.resolve(promise), timeout]).finally(function () { clearTimeout(timer); });
   }
 
-  async function ensurePyodide() {
+  async function ensurePyodide(options) {
     // Some Quarto integrations declare these with top-level `let`, which is
     // visible to classic scripts but is not a property of globalThis.
     var coatless = typeof qpyodideInstance !== 'undefined'
@@ -195,6 +212,7 @@
 
     // Share the in-flight initialization with all consumers on this page or
     // worker. Install the promise before either extension can start another.
+    useWorkerIndexURL(options && options.indexURL);
     if (!root.__qExercisePyodide) {
       root.__qExercisePyodide = (async function () {
         var selected = selectedIndexURL();
