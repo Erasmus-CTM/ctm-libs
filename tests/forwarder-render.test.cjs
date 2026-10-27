@@ -59,5 +59,5 @@ test('the forwarder without ctm-libs next to it names both install commands', {s
 }, dir => {
   const r = C.render(dir, ['page.qmd']);
   assert.notEqual(r.status, 0);
-  assert.match(r.stderr, /ctm-libs is missing next to .*Install pyodide-interaktiv again \(quarto add Erasmus-CTM\/pyodide-interaktiv\) or CTM Assessment/s);
+  assert.match(r.stderr, /ctm-libs is missing next to .*Install pyodide-interaktiv again \(quarto add Erasmus-CTM\/pyodide-interaktiv@feature\/shared-feedback-integration\) or CTM Assessment/s);
 }));
