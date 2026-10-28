@@ -206,6 +206,13 @@ async function init(cfg) {
       emitOutput(text, 'stderr');
     }
   });
+  // WebKit (Safari, SEB on macOS and iOS) does not stop a worker that is
+  // running a WebAssembly loop when the page terminates it: the thread keeps
+  // a core busy until the tab's process ends, one more per hard restart.
+  // With an interrupt buffer CPython calls into JavaScript every 50 checks of
+  // its eval breaker, and there terminate() takes effect. Nobody writes this
+  // local buffer; an isolated page replaces it with its shared one.
+  pyodide.setInterruptBuffer(new Uint8Array(1));
 
   if (config.assetsMode === "local") confineMicropip();
 
