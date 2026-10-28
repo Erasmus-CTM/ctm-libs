@@ -560,7 +560,11 @@ Python in a Web Worker for a page, with the RPC proxy other components use
 for standalone pages). Python runs in its own thread; on a cross-origin
 isolated page `interrupt()` stops a computation with a `KeyboardInterrupt`
 and `input()` works through `Atomics.wait`; otherwise Stop restarts the
-worker.
+worker. Each worker gets a blob URL that the page revokes before it
+terminates the worker; while Python runs, the worker checks it at most every
+250 ms and stops itself once it is gone (one `KeyboardInterrupt`, then a
+JavaScript loop), because WebKit does not end a worker that runs
+WebAssembly.
 
 ```js
 const started = CTMWorker.start({
