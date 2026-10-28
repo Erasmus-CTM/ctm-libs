@@ -3,7 +3,9 @@ const W=require('./helpers/worker.cjs');
 function page(){
   const p=W.pageContext(),errors=[],revoked=[];
   p.console={...console,error:(...args)=>errors.push(args)};
-  p.URL.revokeObjectURL=url=>revoked.push(url);
+  // The worker source's blob and the worker's stop URL, told apart.
+  let made=0;p.URL.createObjectURL=blob=>(blob.type?'blob:source-':'blob:stop-')+(++made);
+  p.URL.revokeObjectURL=url=>revoked.push(url.replace(/-\d+$/,''));
   return {p,errors,revoked};
 }
 async function ready(p,options={}){
@@ -18,7 +20,7 @@ test('fatal initialization rejects the published start, reports raw error and re
   let terminations=0;worker.terminate=()=>{terminations++;};
   const event={message:'startup failed'};worker.onerror(event);worker.onerror(event);
   await rejected;assert.equal(p.mainPyodide,undefined);assert.equal(p.qpyodideReady,started);
-  assert.equal(terminations,1);assert.equal(revoked.length,1);assert.equal(errors.length,2);
+  assert.equal(terminations,1);assert.deepEqual(revoked.sort(),['blob:source','blob:stop']);assert.equal(errors.length,2);
   assert.equal(errors[0][1],event);assert.equal(p.workers.length,1);
 });
 test('fatal active worker rejects RPC/setup/future calls and explicit restart creates only one replacement',async()=>{
@@ -40,7 +42,7 @@ test('fatal active worker rejects RPC/setup/future calls and explicit restart cr
   const nextProxy=await replacement;assert.equal(p.mainPyodide,nextProxy);
   const call=nextProxy.runPythonAsync('valid');next.reply({type:'result',id:next.posted.at(-1).id,value:42});
   assert.equal(await call,42);await assert.rejects(proxy.runPythonAsync('old'),e=>e===fatal);
-  assert.equal(revoked.length,2);
+  assert.deepEqual(revoked.sort(),['blob:source','blob:source','blob:stop'],'the live replacement keeps its stop URL');
 });
 test('postMessage cloning failure rejects only that RPC; a later valid operation still works',async()=>{
   const {p}=page(),{worker,proxy}=await ready(p),native=worker.postMessage;
@@ -71,5 +73,5 @@ test('worker construction failure rejects and publishes one shared failed start,
   p.Worker=class{constructor(){throw error;}};
   const start=p.CTMWorker.start({publish:true});
   assert.equal(p.qpyodideReady,start);await assert.rejects(start,e=>e===error);
-  assert.equal(revoked.length,1);assert.equal(p.mainPyodide,undefined);
+  assert.deepEqual(revoked.sort(),['blob:source','blob:stop']);assert.equal(p.mainPyodide,undefined);
 });
