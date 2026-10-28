@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Stop on a runaway program no longer leaves a busy thread behind in Safari
+  and SEB on macOS and iOS. WebKit does not end a worker that is running a
+  WebAssembly loop when the page terminates it; without cross-origin
+  isolation (plain LAN HTTP), Stop is such a hard restart, so every Stop of
+  `while True: pass` kept one core busy until the tab's process ended, and
+  each later restart and the page got slower (the P13 WebKit acceptance saw
+  a fourth restart take up to 146 s on a 3-core machine). The worker now sets
+  a local interrupt buffer right after loading Pyodide, so CPython calls
+  into JavaScript every 50 eval-breaker checks, where WebKit ends the thread.
+  Isolated pages replace it with their shared buffer as before. A long call
+  inside C code (a huge integer power, a builtin over a vast range) still
+  runs to its end once terminated.
 - Generation requests may take 300 seconds instead of 180, and the time budget
   now applies to each provider request: a corrective retry after a rejected
   reply starts a fresh budget instead of inheriting what was left of the first

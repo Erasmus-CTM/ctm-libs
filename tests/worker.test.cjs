@@ -169,6 +169,18 @@ test('B1: a restart during stage 2 rejects the old whenSetup; calls on the old p
   assert.equal(failure.restarted, undefined);
 });
 
+test('the worker sets a local interrupt buffer at start (WebKit stops a runaway only at a JavaScript call); setInterrupt replaces it', async () => {
+  const buffers = [];
+  const w = W.workerContext({pyodide: () => ({setInterruptBuffer: buffer => buffers.push(buffer)})});
+  await w.init();
+  assert.equal(buffers.length, 1, 'set once, right after loadPyodide');
+  assert.equal(Object.prototype.toString.call(buffers[0].buffer), '[object ArrayBuffer]', 'a plain buffer: plain LAN pages have no SharedArrayBuffer');
+  assert.deepEqual([...buffers[0]], [0], 'nobody writes it: no KeyboardInterrupt without isolation');
+  const shared = new Uint8Array(new SharedArrayBuffer(1));
+  await w.send({id: 1, type: 'setInterrupt', buffer: shared});
+  assert.equal(buffers.at(-1), shared, 'an isolated page installs its shared buffer');
+});
+
 test('cross-origin isolated pages get the interrupt and input buffers; a failure leaves them off', async () => {
   for (const fail of [false, true]) {
     const page = W.pageContext({crossOriginIsolated: true});
