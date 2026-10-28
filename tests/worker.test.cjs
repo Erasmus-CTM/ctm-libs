@@ -169,16 +169,91 @@ test('B1: a restart during stage 2 rejects the old whenSetup; calls on the old p
   assert.equal(failure.restarted, undefined);
 });
 
-test('the worker sets a local interrupt buffer at start (WebKit stops a runaway only at a JavaScript call); setInterrupt replaces it', async () => {
-  const buffers = [];
-  const w = W.workerContext({pyodide: () => ({setInterruptBuffer: buffer => buffers.push(buffer)})});
-  await w.init();
+// The page's stop URL as a sync XMLHttpRequest in a worker sees it: loads
+// while the page holds it, throws a NetworkError once it is revoked.
+function stopProbeWorld() {
+  const live = new Set(['blob:stop']), loads = [];
+  let now = 0, hiccups = 0;
+  class XMLHttpRequest {
+    open(method, url, async) { this.url = url; assert.equal(method, 'GET'); assert.equal(async, false, 'synchronous: Python is running'); }
+    send() { loads.push(this.url); if (!live.has(this.url) || hiccups-- > 0) throw new Error('NetworkError'); this.status = 200; }
+  }
+  return {live, loads, advance: ms => { now += ms; }, hiccup: () => { hiccups = 1; }, globals: {XMLHttpRequest, performance: {now: () => now}}};
+}
+const read = (w, buffer) => w.context.__read(buffer);
+
+test('the worker installs its stop probe as the interrupt buffer at start; it reads 0 until the page revokes its stop URL', async () => {
+  const world = stopProbeWorld(), buffers = [];
+  const w = W.workerContext({globals: world.globals, pyodide: () => ({setInterruptBuffer: buffer => buffers.push(buffer)})});
+  vm.runInContext('globalThis.__read = buffer => buffer[0]', w.context);
+  await w.init({stopURL: 'blob:stop'});
   assert.equal(buffers.length, 1, 'set once, right after loadPyodide');
-  assert.equal(Object.prototype.toString.call(buffers[0].buffer), '[object ArrayBuffer]', 'a plain buffer: plain LAN pages have no SharedArrayBuffer');
-  assert.deepEqual([...buffers[0]], [0], 'nobody writes it: no KeyboardInterrupt without isolation');
+  assert.deepEqual(world.loads, ['blob:stop'], 'armed: the URL loads at start');
+  for (let i = 0; i < 4; i++) { world.advance(300); assert.equal(read(w, buffers[0]), 0); }
+  assert.equal(world.loads.length, 5, 'one load per 250 ms of reads at most');
+  for (let i = 0; i < 100; i++) read(w, buffers[0]);
+  assert.equal(world.loads.length, 5, 'reads in between do not load');
+  // One failed load could be a hiccup: the worker loads again at once.
+  world.hiccup();
+  world.advance(300);
+  assert.equal(read(w, buffers[0]), 0, 'one failed load is not enough');
+  assert.equal(world.loads.length, 7, 'retried at once');
+  // Revoked: two in a row mean the page has given the worker up.
+  world.live.delete('blob:stop');
+  world.advance(300);
+  assert.equal(read(w, buffers[0]), 2, 'SIGINT at the first read that finds out: KeyboardInterrupt unwinds the program');
+  assert.equal(world.loads.length, 9);
+  assert.equal(read(w, buffers[0]), 0, 'once: a second one would hit the unwinding');
+  world.advance(900);
+  assert.equal(read(w, buffers[0]), 0, 'for INTERRUPT_FOR ms');
+  world.advance(200);
+  assert.throws(() => vm.runInContext('__read(__buffer)', Object.assign(w.context, {__buffer: buffers[0]}), {timeout: 200}),
+    /timed out/, 'then it waits in a JavaScript loop, where WebKit delivers terminate()');
+});
+
+test('the stop probe stays off when the stop URL does not load at start, and without one', async () => {
+  for (const config of [{stopURL: 'blob:elsewhere'}, {}]) {
+    const world = stopProbeWorld(), buffers = [];
+    const w = W.workerContext({globals: world.globals, pyodide: () => ({setInterruptBuffer: buffer => buffers.push(buffer)})});
+    vm.runInContext('globalThis.__read = buffer => buffer[0]', w.context);
+    await w.init(config);
+    const loads = world.loads.length;
+    for (let i = 0; i < 10; i++) { world.advance(1000); assert.equal(read(w, buffers[0]), 0); }
+    assert.equal(world.loads.length, loads, 'never probes again');
+  }
+});
+
+test('an isolated page adds its shared buffer behind the stop probe: reads give its SIGINT, the reset clears it', async () => {
+  const world = stopProbeWorld(), buffers = [];
+  const w = W.workerContext({globals: world.globals, pyodide: () => ({setInterruptBuffer: buffer => buffers.push(buffer)})});
+  vm.runInContext('globalThis.__read = buffer => buffer[0]; globalThis.__reset = buffer => { buffer[0] = 0; }', w.context);
+  await w.init({stopURL: 'blob:stop'});
   const shared = new Uint8Array(new SharedArrayBuffer(1));
   await w.send({id: 1, type: 'setInterrupt', buffer: shared});
-  assert.equal(buffers.at(-1), shared, 'an isolated page installs its shared buffer');
+  assert.equal(buffers.length, 1, 'the probe stays installed');
+  assert.equal(read(w, buffers[0]), 0);
+  shared[0] = 2;
+  assert.equal(read(w, buffers[0]), 2, 'the page\'s KeyboardInterrupt');
+  w.context.__reset(buffers[0]);
+  assert.equal(shared[0], 0, 'CPython clears the shared buffer through the probe');
+});
+
+test('the page gives each worker a stop URL and revokes it before it terminates the worker', async () => {
+  const page = W.pageContext(), events = [];
+  let made = 0;
+  page.URL.createObjectURL = blob => 'blob:' + (++made);
+  page.URL.revokeObjectURL = url => events.push('revoke ' + url);
+  const started = page.CTMWorker.start({indexURL: 'https://cdn.example/', publish: true});
+  const worker = page.workers[0];
+  worker.terminate = () => events.push('terminate');
+  const stopURL = worker.posted[0].config.stopURL;
+  assert.match(stopURL, /^blob:/);
+  worker.reply({type: 'result', id: worker.posted[0].id, value: true});
+  const proxy = await started;
+  assert.ok(!events.includes('revoke ' + stopURL), 'held while the worker lives');
+  proxy.restart('Stop');
+  assert.deepEqual(events.slice(-2), ['revoke ' + stopURL, 'terminate'], 'revoked first, then terminated');
+  assert.notEqual(page.workers[1].posted[0].config.stopURL, stopURL, 'the replacement gets its own');
 });
 
 test('cross-origin isolated pages get the interrupt and input buffers; a failure leaves them off', async () => {
