@@ -181,12 +181,15 @@ function stopProbeWorld() {
   return {live, loads, advance: ms => { now += ms; }, hiccup: () => { hiccups = 1; }, globals: {XMLHttpRequest, performance: {now: () => now}}};
 }
 const read = (w, buffer) => w.context.__read(buffer);
+const SAFARI = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Safari/605.1.15';
+const CHROME = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36';
 // A worker with the stop probe whose `hold` command runs until released.
-async function probeWorker(world, config) {
+async function probeWorker(world, config, userAgent = SAFARI) {
   const buffers = [];
   const w = W.workerContext({globals: world.globals, pyodide: () => ({setInterruptBuffer: buffer => buffers.push(buffer)}),
     plugin: 'registerPlugin(() => ({commands: {hold: () => new Promise(resolve => { globalThis.__release = resolve; })}}));'});
   vm.runInContext('globalThis.__read = buffer => buffer[0]; globalThis.__clear = buffer => { buffer[0] = 0; }', w.context);
+  w.context.self.navigator = {userAgent};
   await w.init(config);
   return {w, buffers, hold: async () => { w.send({id: 9, type: 'hold'}); await W.tick(); }};
 }
@@ -228,10 +231,11 @@ test('the worker installs its stop probe as the interrupt buffer at start; a com
     /timed out/, 'then it waits in a JavaScript loop, where WebKit delivers terminate()');
 });
 
-test('the stop probe stays off when the stop URL does not load at start, and without one', async () => {
-  for (const config of [{stopURL: 'blob:elsewhere'}, {}]) {
+test('the stop probe stays off outside WebKit, when the stop URL does not load at start, and without one', async () => {
+  for (const [config, userAgent] of [[{stopURL: 'blob:stop'}, CHROME], [{stopURL: 'blob:stop'}, ''], [{stopURL: 'blob:elsewhere'}, SAFARI], [{}, SAFARI]]) {
     const world = stopProbeWorld();
-    const {w, buffers, hold} = await probeWorker(world, config);
+    const {w, buffers, hold} = await probeWorker(world, config, userAgent);
+    if (userAgent !== SAFARI) assert.deepEqual(world.loads, [], 'Chromium and Firefox end a terminated worker themselves: no load at all');
     const loads = world.loads.length;
     await hold();
     for (let i = 0; i < 10; i++) { world.advance(1000); assert.equal(read(w, buffers[0]), 0); }

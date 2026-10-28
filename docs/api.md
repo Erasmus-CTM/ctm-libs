@@ -564,7 +564,8 @@ worker. Each worker gets a blob URL that the page revokes before it
 terminates the worker; once a command has run for a second, the worker checks
 it at most every 250 ms and stops itself once it is gone (one `KeyboardInterrupt`, then a
 JavaScript loop), because WebKit does not end a worker that runs
-WebAssembly.
+WebAssembly. Only WebKit workers check; Chromium and Firefox end a
+terminated worker themselves.
 
 ```js
 const started = CTMWorker.start({

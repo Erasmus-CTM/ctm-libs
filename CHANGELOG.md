@@ -3,7 +3,8 @@
 ## Unreleased
 
 - A worker that WebKit does not end on Stop now stops itself, also inside
-  long C calls. The page gives each worker a blob URL and revokes it before
+  long C calls (WebKit only: Chromium and Firefox end a terminated worker
+  themselves). The page gives each worker a blob URL and revokes it before
   it terminates the worker; the worker's interrupt buffer is a probe that,
   once a command has run for a second, loads that URL at most every 250 ms
   (CPython reads the buffer every 50 eval-breaker checks). A shorter run

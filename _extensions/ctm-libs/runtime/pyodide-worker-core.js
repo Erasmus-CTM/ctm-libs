@@ -91,10 +91,14 @@ function pageHoldsWorker() {
     return false;
   }
 }
-// Only a URL that loads now can tell a revocation later (a worker that cannot
-// load the page's blob URLs never probes).
+// Only WebKit keeps a terminated worker running; Chromium and Firefox end it
+// themselves, and there the loads would only add failed requests. Only a URL
+// that loads now can tell a revocation later (a worker that cannot load the
+// page's blob URLs never probes).
 function armStopProbe(url) {
-  stopURL = typeof url === "string" ? url : null;
+  const agent = (self.navigator && self.navigator.userAgent) || "";
+  const webkit = /AppleWebKit\//.test(agent) && !/(?:Chrome|Chromium)\//.test(agent);
+  stopURL = webkit && typeof url === "string" ? url : null;
   if (stopURL && !pageHoldsWorker()) stopURL = null;
 }
 function givenUp() {
