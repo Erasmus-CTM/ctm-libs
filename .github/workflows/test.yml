@@ -52,6 +52,8 @@ jobs:
         with:
           version: "1.8.27"
       - run: npm ci --ignore-scripts
+      - name: The SymPy of the pinned Pyodide (runtime/pyodide-sympy.json)
+        run: python scripts/sync-pyodide-sympy.py --check
       - name: npm test
         run: |
           set -o pipefail
