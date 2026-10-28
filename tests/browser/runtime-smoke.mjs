@@ -8,8 +8,11 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 
-const EXPECTED = {pyodide: '0.28.3', python: '3.13', sympy: '1.13.3'};
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+// Pyodide and its SymPy: the record of scripts/sync-pyodide-sympy.py, which
+// ctm-stack's host SymPy follows; jsDelivr's release must load that SymPy.
+const pinned = JSON.parse(fs.readFileSync(path.join(ROOT, '_extensions', 'ctm-libs', 'runtime', 'pyodide-sympy.json'), 'utf8'));
+const EXPECTED = {pyodide: pinned.pyodide, python: '3.13', sympy: pinned.sympy};
 const runtime = fs.readFileSync(path.join(ROOT, '_extensions', 'ctm-libs', 'runtime', 'pyodide-runtime.js'), 'utf8');
 
 const server = http.createServer((request, response) => {
