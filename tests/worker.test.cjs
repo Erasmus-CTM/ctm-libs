@@ -181,15 +181,32 @@ function stopProbeWorld() {
   return {live, loads, advance: ms => { now += ms; }, hiccup: () => { hiccups = 1; }, globals: {XMLHttpRequest, performance: {now: () => now}}};
 }
 const read = (w, buffer) => w.context.__read(buffer);
+// A worker with the stop probe whose `hold` command runs until released.
+async function probeWorker(world, config) {
+  const buffers = [];
+  const w = W.workerContext({globals: world.globals, pyodide: () => ({setInterruptBuffer: buffer => buffers.push(buffer)}),
+    plugin: 'registerPlugin(() => ({commands: {hold: () => new Promise(resolve => { globalThis.__release = resolve; })}}));'});
+  vm.runInContext('globalThis.__read = buffer => buffer[0]; globalThis.__clear = buffer => { buffer[0] = 0; }', w.context);
+  await w.init(config);
+  return {w, buffers, hold: async () => { w.send({id: 9, type: 'hold'}); await W.tick(); }};
+}
 
-test('the worker installs its stop probe as the interrupt buffer at start; it reads 0 until the page revokes its stop URL', async () => {
-  const world = stopProbeWorld(), buffers = [];
-  const w = W.workerContext({globals: world.globals, pyodide: () => ({setInterruptBuffer: buffer => buffers.push(buffer)})});
-  vm.runInContext('globalThis.__read = buffer => buffer[0]', w.context);
-  await w.init({stopURL: 'blob:stop'});
+test('the worker installs its stop probe as the interrupt buffer at start; a command that runs 1 s probes, and stops itself once the page revokes its stop URL', async () => {
+  const world = stopProbeWorld();
+  const {w, buffers, hold} = await probeWorker(world, {stopURL: 'blob:stop'});
   assert.equal(buffers.length, 1, 'set once, right after loadPyodide');
   assert.deepEqual(world.loads, ['blob:stop'], 'armed: the URL loads at start');
-  for (let i = 0; i < 4; i++) { world.advance(300); assert.equal(read(w, buffers[0]), 0); }
+  world.advance(5000);
+  assert.equal(read(w, buffers[0]), 0);
+  assert.equal(world.loads.length, 1, 'no command running: no load');
+  await hold();
+  world.advance(900);
+  assert.equal(read(w, buffers[0]), 0);
+  assert.equal(world.loads.length, 1, 'a short run never loads');
+  world.advance(200);
+  assert.equal(read(w, buffers[0]), 0);
+  assert.equal(world.loads.length, 2, 'after 1 s of the command');
+  for (let i = 0; i < 3; i++) { world.advance(300); assert.equal(read(w, buffers[0]), 0); }
   assert.equal(world.loads.length, 5, 'one load per 250 ms of reads at most');
   for (let i = 0; i < 100; i++) read(w, buffers[0]);
   assert.equal(world.loads.length, 5, 'reads in between do not load');
@@ -213,29 +230,29 @@ test('the worker installs its stop probe as the interrupt buffer at start; it re
 
 test('the stop probe stays off when the stop URL does not load at start, and without one', async () => {
   for (const config of [{stopURL: 'blob:elsewhere'}, {}]) {
-    const world = stopProbeWorld(), buffers = [];
-    const w = W.workerContext({globals: world.globals, pyodide: () => ({setInterruptBuffer: buffer => buffers.push(buffer)})});
-    vm.runInContext('globalThis.__read = buffer => buffer[0]', w.context);
-    await w.init(config);
+    const world = stopProbeWorld();
+    const {w, buffers, hold} = await probeWorker(world, config);
     const loads = world.loads.length;
+    await hold();
     for (let i = 0; i < 10; i++) { world.advance(1000); assert.equal(read(w, buffers[0]), 0); }
     assert.equal(world.loads.length, loads, 'never probes again');
   }
 });
 
-test('an isolated page adds its shared buffer behind the stop probe: reads give its SIGINT, the reset clears it', async () => {
-  const world = stopProbeWorld(), buffers = [];
-  const w = W.workerContext({globals: world.globals, pyodide: () => ({setInterruptBuffer: buffer => buffers.push(buffer)})});
-  vm.runInContext('globalThis.__read = buffer => buffer[0]; globalThis.__reset = buffer => { buffer[0] = 0; }', w.context);
-  await w.init({stopURL: 'blob:stop'});
+test('an isolated page adds its shared buffer behind the stop probe: reads give its SIGINT; CPython\'s clear keeps a SIGINT written after its read', async () => {
+  const world = stopProbeWorld();
+  const {w, buffers} = await probeWorker(world, {stopURL: 'blob:stop'});
   const shared = new Uint8Array(new SharedArrayBuffer(1));
   await w.send({id: 1, type: 'setInterrupt', buffer: shared});
   assert.equal(buffers.length, 1, 'the probe stays installed');
+  // CPython reads, then clears. A SIGINT from the page in between survives.
   assert.equal(read(w, buffers[0]), 0);
   shared[0] = 2;
+  w.context.__clear(buffers[0]);
+  assert.equal(shared[0], 2, 'not lost to the clear of an earlier read');
   assert.equal(read(w, buffers[0]), 2, 'the page\'s KeyboardInterrupt');
-  w.context.__reset(buffers[0]);
-  assert.equal(shared[0], 0, 'CPython clears the shared buffer through the probe');
+  w.context.__clear(buffers[0]);
+  assert.equal(shared[0], 0, 'CPython clears the SIGINT it read');
 });
 
 test('the page gives each worker a stop URL and revokes it before it terminates the worker', async () => {

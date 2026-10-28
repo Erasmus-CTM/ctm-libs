@@ -98,8 +98,9 @@ function postStatus(text) {
 // that is running WebAssembly when the page terminates it: the thread keeps a
 // core busy until the tab's process ends, one more per hard restart. CPython
 // reads the interrupt buffer below every 50 checks of its eval breaker. Each
-// read is a call into JavaScript, where WebKit can deliver the termination,
-// and at most every PROBE_EVERY ms the read also loads the page's stop URL.
+// read is a call into JavaScript, where WebKit can deliver the termination.
+// Once a command has run PROBE_AFTER ms (a short run never probes), the read
+// also loads the page's stop URL, at most every PROBE_EVERY ms.
 // The page revokes that URL before it terminates this worker (failWorker), so
 // a worker that WebKit has not stopped finds out by itself: it raises one
 // KeyboardInterrupt (more would break the unwinding), and if the program still
@@ -107,8 +108,10 @@ function postStatus(text) {
 // JavaScript loop, where WebKit ends it.
 // A program of long C calls finds out late (CPython reads the buffer every 50
 // checks; a loop of 20 ms calls: every second), one huge C call at its end.
-const PROBE_EVERY = 250, INTERRUPT_FOR = 1000;
+const PROBE_AFTER = 1000, PROBE_EVERY = 250, INTERRUPT_FOR = 1000;
 let signalBuffer = null;   // Uint8Array(SharedArrayBuffer) of an isolated page
+let signalRead = 0;        // what the last read of it gave CPython
+let commandStartedAt = 0;  // the running command's start (performance.now()), 0 when idle
 let stopURL = null, probedAt = -Infinity, givenUpAt = 0, interrupted = false;
 function pageHoldsWorker() {
   try {
@@ -129,7 +132,7 @@ function armStopProbe(url) {
 function givenUp() {
   if (givenUpAt) return true;
   const now = performance.now();
-  if (!stopURL || now - probedAt < PROBE_EVERY) return false;
+  if (!stopURL || !commandStartedAt || now - commandStartedAt < PROBE_AFTER || now - probedAt < PROBE_EVERY) return false;
   probedAt = now;
   // Two failed loads in a row: one could be a hiccup. Not one after the next
   // read: in a loop of long C calls that read is 50 calls away.
@@ -144,10 +147,14 @@ const interruptBuffer = {
       if (performance.now() - givenUpAt < INTERRUPT_FOR) return 0;
       for (;;) { /* WebKit delivers terminate() in a JavaScript loop */ }
     }
-    return signalBuffer ? signalBuffer[0] : 0;
+    signalRead = signalBuffer ? Atomics.load(signalBuffer, 0) : 0;
+    return signalRead;
   },
+  // CPython clears the buffer after each read. Clear only what it read: a
+  // SIGINT the page wrote since then stays for the next check (a plain store
+  // of 0 would lose it; this getter widened that window).
   set 0(value) {
-    if (signalBuffer) signalBuffer[0] = value;
+    if (signalBuffer) Atomics.compareExchange(signalBuffer, 0, signalRead, value);
   }
 };
 
@@ -819,7 +826,10 @@ self.onmessage = function(event) {
   const download = mayDownload(msg);
   busy++;
   if (download) downloads++;
-  const pending = commandQueue.then(() => handleMessage(msg));
+  const pending = commandQueue.then(() => {
+    commandStartedAt = performance.now();
+    return handleMessage(msg).finally(() => { commandStartedAt = 0; });
+  });
   commandQueue = pending.catch(() => {});
   const done = () => {
     busy--;

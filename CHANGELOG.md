@@ -4,12 +4,15 @@
 
 - A worker that WebKit does not end on Stop now stops itself, also inside
   long C calls. The page gives each worker a blob URL and revokes it before
-  it terminates the worker; the worker's interrupt buffer is a probe that
-  loads that URL at most every 250 ms while Python runs (CPython reads the
-  buffer every 50 eval-breaker checks). Once the URL is gone, the worker
+  it terminates the worker; the worker's interrupt buffer is a probe that,
+  once a command has run for a second, loads that URL at most every 250 ms
+  (CPython reads the buffer every 50 eval-breaker checks). A shorter run
+  never loads it. Once the URL is gone, the worker
   raises one KeyboardInterrupt, and if the program still runs a second later
   (it catches the interrupt), waits in a JavaScript loop, where WebKit ends
-  it. Isolated pages' shared buffer works behind the probe. A program of long
+  it. Isolated pages' shared buffer works behind the probe, and CPython's
+  clear after each read now clears only the value it read, so a Stop that
+  lands between the two is no longer lost. A program of long
   C calls finds out late (with 20 ms calls: about a second), one huge C call
   only at its end.
 - Stop on a runaway program no longer leaves a busy thread behind in Safari
