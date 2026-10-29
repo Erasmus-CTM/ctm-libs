@@ -313,7 +313,10 @@
       if (policy.systemPrefix && originalMessages[0]?.role === 'system') originalMessages[0].content = policy.systemPrefix + originalMessages[0].content;
       async function once(correction) {
         let activeMessages = originalMessages.map(m => ({ ...m }));
-        if (correction) activeMessages.unshift({ role: 'system', content: correction });
+        // One system message, first: chat templates such as Qwen's reject a
+        // second one ("System message must be at the beginning").
+        if (correction && activeMessages[0]?.role === 'system' && typeof activeMessages[0].content === 'string') activeMessages[0].content += '\n\n' + correction;
+        else if (correction) activeMessages.unshift({ role: 'system', content: correction });
         let optional = policy.hasOptionalBody && loadCapability() !== 'unsupported';
         let images = activeMessages.some(m => Array.isArray(m.content));
         let tokenField = 'max_tokens';

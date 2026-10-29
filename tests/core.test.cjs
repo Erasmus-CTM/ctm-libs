@@ -68,6 +68,14 @@ test('empty/truncated output is rejected and reasoning tags get one corrective r
   const result = await client(async () => response(200, ++calls === 1 ? '<think>private</think>' : 'Check agreement.')).request(fixtures.writing);
   assert.equal(calls, 2); assert.equal(result.text, 'Check agreement.');
 });
+test('a corrective retry keeps a single system message at the beginning', async () => {
+  const bodies = [];
+  await client(async (url, init) => { bodies.push(JSON.parse(init.body)); return response(200, bodies.length === 1 ? '<think>private</think>' : 'Check agreement.'); }).request(fixtures.writing);
+  const [first, retry] = bodies.map(b => b.messages);
+  assert.deepEqual(retry.map(m => m.role), first.map(m => m.role));
+  assert.equal(retry.filter(m => m.role === 'system').length, 1); assert.equal(retry[0].role, 'system');
+  assert.ok(retry[0].content.startsWith(first[0].content)); assert.match(retry[0].content, /reasoning tags/);
+});
 test('non-Latin quotations are accepted in a language exercise', async () => {
   assert.equal((await client(async () => response(200, 'The source says 日本語.')).request(fixtures.writing)).text, 'The source says 日本語.');
 });
