@@ -280,22 +280,23 @@
   function createClient(config = {}, dependencies = {}) {
     const fetcher = dependencies.fetch || (typeof fetch === 'function' ? fetch.bind(globalThis) : null);
     const storage = dependencies.storage;
-    function capabilityKey() { return String(config.baseUrl).replace(/\/+$/, '').toLowerCase() + '|' + config.model; }
-    function loadCapability() {
-      let value = memoryCapabilities.get(capabilityKey());
-      try { value = JSON.parse(storage?.getItem(cacheKey) || '{}')[capabilityKey()] || value; } catch {}
+    // kind: '' for the optional thinking body, 'stream' for streamed generation.
+    function capabilityKey(kind = '') { return String(config.baseUrl).replace(/\/+$/, '').toLowerCase() + '|' + config.model + (kind ? '|' + kind : ''); }
+    function loadCapability(kind) {
+      let value = memoryCapabilities.get(capabilityKey(kind));
+      try { value = JSON.parse(storage?.getItem(cacheKey) || '{}')[capabilityKey(kind)] || value; } catch {}
       return value && Date.now() - value.time < 30 * 86400000 ? value.value : null;
     }
-    function saveCapability(value) {
+    function saveCapability(value, kind) {
       const record = { value, time: Date.now() };
-      memoryCapabilities.set(capabilityKey(), record);
-      try { const all = JSON.parse(storage?.getItem(cacheKey) || '{}'); all[capabilityKey()] = record; storage?.setItem(cacheKey, JSON.stringify(all)); } catch {}
+      memoryCapabilities.set(capabilityKey(kind), record);
+      try { const all = JSON.parse(storage?.getItem(cacheKey) || '{}'); all[capabilityKey(kind)] = record; storage?.setItem(cacheKey, JSON.stringify(all)); } catch {}
     }
     async function complete(messages, options = {}) {
       const base = endpoint(config);
       if (!fetcher) throw new FeedbackError('CONFIGURATION', 'Fetch is unavailable.');
       if (!Array.isArray(messages) || !messages.length) fail('Messages are required.');
-      const controller = new AbortController();
+      const controller = new AbortController(), started = Date.now();
       let timedOut = false;
       const abort = () => controller.abort();
       if (options.signal?.aborted) throw new FeedbackError('ABORTED', 'Feedback cancelled.');
@@ -311,6 +312,39 @@
       if (config.apiKey) headers.Authorization = 'Bearer ' + config.apiKey;
       const originalMessages = messages.map(m => ({ ...m }));
       if (policy.systemPrefix && originalMessages[0]?.role === 'system') originalMessages[0].content = policy.systemPrefix + originalMessages[0].content;
+      // Long calls (generation, solving; budget over 60 s) stream: a reasoning
+      // model can think for minutes before its first token, and proxies in
+      // front of a provider (nginx, Cloudflare) close a silent connection after
+      // about a minute without CORS headers, which the browser reports as a
+      // network failure. Streamed chunks keep the connection busy; each chunk
+      // renews the time budget.
+      async function readStream(response) {
+        const reader = response.body.getReader(), decoder = new TextDecoder();
+        let buffer = '', content = '', finish = null;
+        const take = line => {
+          line = line.trim();
+          if (!line.startsWith('data:')) return;
+          const payload = line.slice(5).trim();
+          if (payload === '[DONE]') return;
+          let chunk;
+          try { chunk = JSON.parse(payload); } catch { return; }
+          if (chunk.error) throw new FeedbackError('HTTP', 'API error: ' + JSON.stringify(chunk.error).slice(0, 300));
+          const choice = chunk.choices?.[0];
+          if (typeof choice?.delta?.content === 'string') content += choice.delta.content;
+          if (choice?.finish_reason) finish = choice.finish_reason;
+        };
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          arm();
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+          lines.forEach(take);
+        }
+        take(buffer + decoder.decode());
+        return { choices: [{ message: { content }, finish_reason: finish }] };
+      }
       async function once(correction) {
         let activeMessages = originalMessages.map(m => ({ ...m }));
         // One system message, first: chat templates such as Qwen's reject a
@@ -320,9 +354,11 @@
         let optional = policy.hasOptionalBody && loadCapability() !== 'unsupported';
         let images = activeMessages.some(m => Array.isArray(m.content));
         let tokenField = 'max_tokens';
+        let stream = budget > 60000 && options.stream !== false && loadCapability('stream') !== 'unsupported';
         for (let attempt = 0; attempt < 5; attempt++) {
           const body = { model: config.model, messages: activeMessages, [tokenField]: options.maxTokens ?? (options.generation ? 16384 : dependencies.maxTokens ?? 8192) };
           if (optional) Object.assign(body, policy.optionalBody);
+          if (stream) body.stream = true;
           arm();
           const response = await fetcher(base + '/chat/completions', { method: 'POST', headers, body: JSON.stringify(body), signal: controller.signal });
           if (!response.ok) {
@@ -336,11 +372,12 @@
                 throw new FeedbackError('IMAGE_UNSUPPORTED', 'The provider rejected this image request. Choose a vision-capable model.');
               }
               if (tokenField === 'max_tokens' && /max_tokens/.test(error)) { tokenField = 'max_completion_tokens'; continue; }
+              if (stream) { stream = false; if (/stream/i.test(error)) saveCapability('unsupported', 'stream'); continue; }
             }
             throw new FeedbackError('HTTP', 'API ' + response.status + ': ' + error.slice(0, 300));
           }
           if (optional) saveCapability('supported');
-          const data = await response.json();
+          const data = stream && /text\/event-stream/.test(response.headers?.get?.('content-type') || '') ? await readStream(response) : await response.json();
           const choice = data?.choices?.[0];
           if (choice?.finish_reason === 'length') throw new FeedbackError('TRUNCATED', 'The provider cut the feedback short. Try a different model.');
           let text = choice?.message?.content;
@@ -364,7 +401,10 @@
       } catch (error) {
         if (controller.signal.aborted) throw new FeedbackError(timedOut ? 'TIMEOUT' : 'ABORTED', timedOut ? 'Feedback timed out. Try an instant or non-reasoning model.' : 'Feedback cancelled.');
         if (error instanceof FeedbackError) throw error;
-        throw new FeedbackError('NETWORK', 'Could not contact the provider. Check the connection and browser access (CORS).', { cause: error });
+        // The elapsed time tells a refused request (0 s) from a proxy that cut a
+        // long one (often 60 or 100 s); the browser hides the reason itself.
+        const seconds = Math.round((Date.now() - started) / 1000);
+        throw new FeedbackError('NETWORK', 'Could not contact the provider (after ' + seconds + ' s: ' + String(error?.message || error).slice(0, 120) + '). Check the connection and browser access (CORS).', { cause: error });
       } finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
     }
     return { request: (input, options = {}) => {
