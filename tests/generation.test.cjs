@@ -86,3 +86,31 @@ test('generation selector registers with PR48 shared Settings and keeps the stan
  const generator=[...registered.content.querySelectorAll('label')].find(el=>el.firstChild.textContent==='Model for generating problems').querySelector('input');assert.equal(generator.value,'reasoning');
  [...registered.content.querySelectorAll('button')].find(b=>b.textContent==='Save settings').click();assert.equal(closed,1);assert.equal(w.AIFeedback.loadConfig().generatorModel,'reasoning');w.close();
 });
+
+const sse=(chunks,type='text/event-stream')=>{const enc=new TextEncoder();const parts=chunks.map(c=>enc.encode(c));let i=0;
+ return {ok:true,headers:{get:()=>type},body:{getReader:()=>({read:async()=>i<parts.length?{value:parts[i++],done:false}:{done:true}})},json:async()=>{throw new Error('not json');}};};
+test('generation streams: chunks split anywhere are joined, reasoning deltas ignored',async()=>{
+ const bodies=[];const data=o=>'data: '+JSON.stringify(o)+'\n\n';
+ const text=data({choices:[{delta:{reasoning_content:'thinking'}}]})+data({choices:[{delta:{content:'{"quest'}}]})+data({choices:[{delta:{content:'ion":"Q"}'},finish_reason:'stop'}]})+'data: [DONE]\n\n';
+ const client=F.createClient({baseUrl:'https://provider.invalid/v1',model:'reasoning'},{fetch:async(url,request)=>{bodies.push(JSON.parse(request.body));return sse([text.slice(0,17),text.slice(17,70),text.slice(70)]);}});
+ const result=await client.complete([{role:'system',content:'JSON'}],{generation:true});
+ assert.equal(result.text,'{"question":"Q"}');assert.equal(bodies[0].stream,true);
+});
+test('a streamed length stop is truncation; a provider without streaming falls back once and is remembered',async()=>{
+ const data=o=>'data: '+JSON.stringify(o)+'\n\n';
+ const cut=F.createClient({baseUrl:'https://provider.invalid/v1',model:'r'},{fetch:async()=>sse([data({choices:[{delta:{content:'{"q'},finish_reason:'length'}]})])});
+ await assert.rejects(cut.complete([{role:'user',content:'Generate'}],{generation:true}),e=>e.code==='TRUNCATED');
+ const bodies=[];const plain=F.createClient({baseUrl:'https://plain.invalid/v1',model:'r'},{fetch:async(url,request)=>{const body=JSON.parse(request.body);bodies.push(body);return body.stream?{ok:false,status:400,text:async()=>'stream not supported'}:response('{"question":"Q"}');}});
+ assert.equal((await plain.complete([{role:'user',content:'Generate'}],{generation:true})).text,'{"question":"Q"}');
+ await plain.complete([{role:'user',content:'Generate'}],{generation:true});
+ assert.deepEqual(bodies.map(b=>Boolean(b.stream)),[true,false,false]);
+ const ignored=F.createClient({baseUrl:'https://json.invalid/v1',model:'r'},{fetch:async()=>response('{"question":"Q"}')});
+ assert.equal((await ignored.complete([{role:'user',content:'Generate'}],{generation:true})).text,'{"question":"Q"}');
+});
+test('ordinary feedback does not stream; a network failure names the elapsed time and the reason',async()=>{
+ const bodies=[];const client=F.createClient({baseUrl:'https://provider.invalid',model:'fast'},{fetch:async(url,request)=>{bodies.push(JSON.parse(request.body));return response('Fine.');}});
+ await client.complete([{role:'user',content:'Feedback'}]);assert.equal(bodies[0].stream,undefined);
+ await client.complete([{role:'user',content:'Solve'}],{timeoutMs:180000});assert.equal(bodies[1].stream,true);
+ const down=F.createClient({baseUrl:'https://provider.invalid',model:'fast'},{fetch:async()=>{throw new TypeError('Failed to fetch');}});
+ await assert.rejects(down.complete([{role:'user',content:'Feedback'}]),e=>e.code==='NETWORK'&&/after 0 s: Failed to fetch/.test(e.message));
+});
