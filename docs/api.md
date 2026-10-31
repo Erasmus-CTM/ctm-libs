@@ -725,6 +725,7 @@ const reply = await client.request(request, { signal: abortController.signal });
 | `criteria` | Optional string array overriding the profile defaults. |
 | `evidence` | Optional array of `{label, text}` containing only assessment information the adapter permits the provider to see. Never pass the whole exercise/test configuration. |
 | `feedback` | Optional teaching policy described below. |
+| `correction` | Optional `{note, previousFeedback?, previousLevel?}` anchored to the original response image. `note` is nonempty, at most 1200 characters. `previousFeedback` (at most 20,000 characters) identifies a single correction reply. `previousLevel`, when supplied, must be a positive safe integer and records the preceding feedback's actual hint level. Omit both when carrying the clarification into later hints. It is student-provided context, not checker evidence or revised work. |
 
 At least one nonempty textual response or an image with role `response` is
 required. A source image alone is not submitted work. A text-free handwriting
@@ -779,6 +780,32 @@ Errors are `FeedbackError` objects with a stable `code`: `INVALID_REQUEST`,
 
 ### UI adapter
 
+`AIFeedback.attach({corrections: true, ...})` enables one correction exchange
+per uploaded submission after an API feedback result. Standalone `.ai-feedback`
+activities opt in with `corrections="true"` together with `image-upload="true"`.
+It is off by default and unavailable in copy-prompt mode. The correction sends
+the original work, the preceding feedback and a short student clarification;
+it replaces the feedback and restarts the hint sequence at level 1. Later hints
+retain the clarification, without reopening the correction exchange. Failed,
+cancelled and stale requests do not consume the exchange or reset the hints.
+
+The original answer text becomes read-only only when an uploaded response image
+actually makes a correction available. Text-only submissions and images with
+other roles do not lock it. Replacing or removing an upload unlocks the text and
+clears correction state and hint progress, preserving the typed answer.
+`reset()` (including a linked variant reset) also unlocks the answer box.
+Clarifications and images
+are held in memory only. Custom adapters must call `reset()` on a new submission
+and prevent edits to the original work while offering corrections. The model is
+instructed to check claims against the image and request a new upload for new
+work; this is a model instruction, not a guarantee of correct interpretation.
+Changing the teaching policy, feedback language, API mode, provider, model or key
+requires fresh feedback before a correction can be submitted. The form is replaced
+with a localized notice, without changing the displayed hint or stored progress.
+Explicit custom `client` adapters retain ownership of their provider settings.
+Correction requests carry the previous hint level; when it exceeds the restarted
+level, the prompt explicitly prohibits reusing its additional values or solution.
+
 ```js
 const adapter = AIFeedback.attach({
   id: 'exercise-1',
@@ -788,6 +815,8 @@ const adapter = AIFeedback.attach({
   // client: optional explicit client; otherwise use shared settings
   // uiLanguage: optional; defaults to document language
   // afterRender: optional callback for mathematical typesetting
+  // onCorrectionAvailable: optional callback when image feedback offers a correction
+  // onReset: optional callback after reset invalidates the submission
 });
 adapter.cancel();
 adapter.dispose();
@@ -798,7 +827,7 @@ execute learner code or have other side effects: it is called again to detect
 edits during a pending request. The adapter increments hint state only after
 a successful, current response (or copy prompt) is displayed. Hint state is
 scoped to page path and activity ID in session storage. Review mode never
-escalates. The adapter returns `request()`, `cancel()` and `dispose()` methods.
+escalates. The adapter returns `request()`, `reset()`, `cancel()` and `dispose()` methods.
 
 Institutions can set `ai-feedback: base-url:` and `model:` in project YAML.
 These are defaults for the settings form; personal keys are never read from
@@ -825,7 +854,10 @@ TeX remains in place. `afterRender` runs after shared typesetting.
 Use a fenced Div with `.ai-feedback` and a unique ID. Supported attributes:
 `profile`, `ui-language`, `response-language`, `feedback-language`,
 `source-language`, `learner-level`, `max-issues`, `context`, `source`,
-`image-upload="true"`, and `image-role`. `ui-language` goes through the
+`image-upload="true"`, `image-role`, and `corrections="true"`. Corrections require
+image upload; without `image-upload="true"`, the build warns and disables them.
+The form is offered only after direct API feedback with an image of the learner's
+response. `ui-language` goes through the
 language chain (`de-CH` → de); `feedback-language` is passed as written.
 
 Within it, `.feedback-source` supplies visible original text;
