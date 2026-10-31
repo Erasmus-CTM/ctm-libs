@@ -1,6 +1,7 @@
 .ai-feedback-activity { border: 1px solid #c9d8e2; border-left: 4px solid #297a85; border-radius: .4rem; padding: 1.2rem; margin: 1.5rem 0; }
 .ai-feedback-activity > label { display: block; font-weight: 600; margin: .7rem 0 .3rem; }
 .ai-feedback-activity textarea { display: block; width: 100%; padding: .75rem; border: 1px solid #8a9ba8; border-radius: .3rem; font: inherit; resize: vertical; }
+.ai-feedback-activity > textarea[hidden], .ai-feedback-activity > label[hidden] { display: none; }
 .ai-feedback-activity input[type="file"] { display: block; width: 100%; max-width: 100%; min-width: 0; font: inherit; }
 /* Common CTM button size, shared by all CTM components (math-exercise,
    py-exercise, pyodide-interaktiv, ai-feedback). Set the --ctm-button-*
@@ -29,6 +30,10 @@
 .ai-feedback-images figure a { display: block; }
 .ai-feedback-context, .ai-context, .math-exercise-context, .feedback-source { background: #f5f8f9; padding: .8rem 1rem; border-radius: .3rem; margin: .8rem 0; }
 .ai-feedback-hint { font-size: .85rem; font-weight: 600; }
+.ai-feedback-correction { border-top: 1px solid #c9d8e2; margin-top: .8rem; padding-top: .5rem; }
+.ai-feedback-correction label { display: block; font-weight: 600; }
+.ai-feedback-correction textarea { display: block; width: 100%; padding: .6rem; margin-top: .3rem; font: inherit; resize: vertical; }
+.ai-feedback-correction form[hidden] { display: none; }
 .ai-feedback-body table { width: 100%; border-collapse: collapse; }
 .ai-feedback-body td, .ai-feedback-body th { border: 1px solid #c9d8e2; padding: .3rem; }
 

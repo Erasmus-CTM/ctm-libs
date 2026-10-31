@@ -42,7 +42,14 @@ CTMLocales.add("feedback",
     "invalidImage": "Use PNG, JPEG or WebP images within the size limit.",
     "hint": "Hint",
     "attachImages": "Attach these images in your AI chat as well.",
-    "generatorModel": "Model for generating problems"
+    "generatorModel": "Model for generating problems",
+    "correctReading": "The AI misunderstood my work",
+    "correctionLabel": "What did the AI misread or misunderstand?",
+    "correctionHelp": "Point to a line or feature on this uploaded page, for example: “The exponent on line 3 is −2.” One correction reply; changed or additional work needs a new upload.",
+    "updateFeedback": "Update feedback",
+    "correctionNote": "Your correction:",
+    "correctionClosed": "Correction complete. For changed or additional work, upload a new page.",
+    "correctionRestart": "Feedback restarted at hint 1."
   },
   "de": {
     "button": "Feedback",
@@ -75,7 +82,14 @@ CTMLocales.add("feedback",
     "invalidImage": "Verwende PNG-, JPEG- oder WebP-Bilder innerhalb der Größenbegrenzung.",
     "hint": "Hinweis",
     "attachImages": "Füge diese Bilder ebenfalls in deinem KI-Chat an.",
-    "generatorModel": "Modell zum Erstellen von Aufgaben"
+    "generatorModel": "Modell zum Erstellen von Aufgaben",
+    "correctReading": "Die KI hat meine Arbeit missverstanden",
+    "correctionLabel": "Was hat die KI falsch gelesen oder verstanden?",
+    "correctionHelp": "Verweise auf eine Zeile oder ein Detail auf dieser hochgeladenen Seite, etwa: „Der Exponent in Zeile 3 ist −2.“ Es gibt eine Antwort auf die Klarstellung. Geänderte oder zusätzliche Arbeit erfordert einen neuen Upload.",
+    "updateFeedback": "Feedback aktualisieren",
+    "correctionNote": "Deine Klarstellung:",
+    "correctionClosed": "Klarstellung abgeschlossen. Lade für geänderte oder zusätzliche Arbeit eine neue Seite hoch.",
+    "correctionRestart": "Das Feedback beginnt wieder bei Hinweis 1."
   },
   "nb": {
     "button": "Tilbakemelding",
@@ -108,7 +122,14 @@ CTMLocales.add("feedback",
     "invalidImage": "Bruk PNG-, JPEG- eller WebP-bilder innenfor størrelsesgrensen.",
     "hint": "Hint",
     "attachImages": "Legg også ved disse bildene i KI-chatten.",
-    "generatorModel": "Modell for å lage oppgaver"
+    "generatorModel": "Modell for å lage oppgaver",
+    "correctReading": "KI-en misforsto besvarelsen min",
+    "correctionLabel": "Hva leste eller forsto KI-en feil?",
+    "correctionHelp": "Vis til en linje eller detalj på dette bildet, for eksempel: «Eksponenten på linje 3 er −2.» Du får ett svar på presiseringen. Endret eller nytt arbeid krever en ny opplasting.",
+    "updateFeedback": "Oppdater tilbakemeldingen",
+    "correctionNote": "Din presisering:",
+    "correctionClosed": "Presiseringen er behandlet. Last opp en ny side for endret eller nytt arbeid.",
+    "correctionRestart": "Tilbakemeldingen startet på nytt på hint 1."
   },
   "es": {
     "button": "Comentarios",
@@ -141,7 +162,14 @@ CTMLocales.add("feedback",
     "invalidImage": "Usa imágenes PNG, JPEG o WebP dentro del límite de tamaño.",
     "hint": "Pista",
     "attachImages": "Adjunta también estas imágenes en tu chat de IA.",
-    "generatorModel": "Modelo para generar problemas"
+    "generatorModel": "Modelo para generar problemas",
+    "correctReading": "La IA ha malinterpretado mi trabajo",
+    "correctionLabel": "¿Qué ha leído o interpretado mal la IA?",
+    "correctionHelp": "Indica una línea o un detalle de esta página, por ejemplo: «El exponente de la línea 3 es −2». Recibirás una respuesta a la aclaración. El trabajo modificado o adicional requiere una nueva imagen.",
+    "updateFeedback": "Actualizar comentarios",
+    "correctionNote": "Tu aclaración:",
+    "correctionClosed": "Aclaración completada. Sube una nueva página para evaluar trabajo modificado o adicional.",
+    "correctionRestart": "Los comentarios vuelven a la pista 1."
   },
   "nn": {
     "button": "Tilbakemelding",
@@ -174,7 +202,14 @@ CTMLocales.add("feedback",
     "invalidImage": "Bruk PNG-, JPEG- eller WebP-bilete innanfor storleiksgrensa.",
     "hint": "Hint",
     "attachImages": "Legg òg ved desse bileta i KI-chatten.",
-    "generatorModel": "Modell for å lage oppgåver"
+    "generatorModel": "Modell for å lage oppgåver",
+    "correctReading": "KI-en misforstod svaret mitt",
+    "correctionLabel": "Kva las eller forstod KI-en feil?",
+    "correctionHelp": "Vis til ei linje eller ein detalj på dette biletet, til dømes: «Eksponenten på linje 3 er −2.» Du får eitt svar på presiseringa. Endra eller nytt arbeid krev ei ny opplasting.",
+    "updateFeedback": "Oppdater tilbakemeldinga",
+    "correctionNote": "Di presisering:",
+    "correctionClosed": "Presiseringa er behandla. Last opp ei ny side for endra eller nytt arbeid.",
+    "correctionRestart": "Tilbakemeldinga starta på nytt på hint 1."
   }
 }
 /*END-JSON*/

@@ -725,6 +725,7 @@ const reply = await client.request(request, { signal: abortController.signal });
 | `criteria` | Optional string array overriding the profile defaults. |
 | `evidence` | Optional array of `{label, text}` containing only assessment information the adapter permits the provider to see. Never pass the whole exercise/test configuration. |
 | `feedback` | Optional teaching policy described below. |
+| `correction` | Optional `{note, previousFeedback?}` anchored to the original response image. `note` is nonempty, at most 1200 characters. `previousFeedback` (at most 20,000 characters) identifies a single correction reply; omit it when carrying the clarification into later hints. It is student-provided context, not checker evidence or revised work. |
 
 At least one nonempty textual response or an image with role `response` is
 required. A source image alone is not submitted work. A text-free handwriting
@@ -778,6 +779,23 @@ Errors are `FeedbackError` objects with a stable `code`: `INVALID_REQUEST`,
 `REASONING`, `VALIDATION`, `IMAGE_UNSUPPORTED`, or `COMPATIBILITY`.
 
 ### UI adapter
+
+`AIFeedback.attach({corrections: true, ...})` enables one correction exchange
+per uploaded submission after an API feedback result. Standalone `.ai-feedback`
+activities opt in with `corrections="true"` together with `image-upload="true"`.
+It is off by default and unavailable in copy-prompt mode. The correction sends
+the original work, the preceding feedback and a short student clarification;
+it replaces the feedback and restarts the hint sequence at level 1. Later hints
+retain the clarification, without reopening the correction exchange. Failed,
+cancelled and stale requests do not consume the exchange or reset the hints.
+
+The original answer text becomes read-only after feedback in an opted-in
+activity. Replacing or removing its upload clears correction state and hint
+progress; a new upload also clears the old answer text. Clarifications and images
+are held in memory only. Custom adapters must call `reset()` on a new submission
+and prevent edits to the original work while offering corrections. The model is
+instructed to check claims against the image and request a new upload for new
+work; this is a model instruction, not a guarantee of correct interpretation.
 
 ```js
 const adapter = AIFeedback.attach({

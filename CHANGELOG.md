@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Image feedback activities can opt into one correction exchange with
+  `corrections="true"`. A short clarification is checked against the original
+  image and preceding feedback; the replacement restarts at hint 1. Later hints
+  retain the clarification, while changed work requires a new upload. Failed or
+  cancelled corrections preserve existing feedback and progress. Off by default;
+  available for direct API results only.
 - A worker that WebKit does not end on Stop now stops itself, also inside
   long C calls (WebKit only: Chromium and Firefox end a terminated worker
   themselves). The page gives each worker a blob URL and revokes it before

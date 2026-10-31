@@ -242,6 +242,7 @@ local function activity(block, context)
     sourceLanguage = attrs["source-language"] or "", sourceRef = attrs["source"],
     learnerLevel = attrs["learner-level"] or "", starter = starter,
     resetOnVariant = attrs["reset-on-variant"],
+    corrections = attrs["corrections"] == "true",
     imageUpload = attrs["image-upload"] == "true", imageRole = attrs["image-role"] or "response",
     contextMode = contextMode, contextRefs = attrs["context"] or "",
     context = contextMode ~= "none" and bounded(context, contextMode == "explicit") or "",
