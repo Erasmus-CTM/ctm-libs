@@ -234,6 +234,11 @@ local function activity(block, context)
   local task = table.concat(taskParts, "\n\n")
   if task == "" then task = profile == "translation" and "Translate the supplied source into the response language." or "Give feedback on the learner's response." end
   local contextMode = attrs["context"] == "none" and "none" or (attrs["context"] and attrs["context"] ~= "auto" and "explicit" or "auto")
+  local corrections = attrs["corrections"] == "true"
+  if corrections and attrs["image-upload"] ~= "true" then
+    quarto.log.warning("AI feedback " .. id .. ': corrections="true" requires image-upload="true"; corrections disabled.')
+    corrections = false
+  end
   local data = {
     id = id, policySelection = policy.selection(block, attrs), profile = profile, task = task, materials = materials, criteria = criteria,
     uiLanguage = attrs["ui-language"] and ctm.locale.language("feedback", attrs["ui-language"]) or uiLanguage,
@@ -242,7 +247,7 @@ local function activity(block, context)
     sourceLanguage = attrs["source-language"] or "", sourceRef = attrs["source"],
     learnerLevel = attrs["learner-level"] or "", starter = starter,
     resetOnVariant = attrs["reset-on-variant"],
-    corrections = attrs["corrections"] == "true",
+    corrections = corrections,
     imageUpload = attrs["image-upload"] == "true", imageRole = attrs["image-role"] or "response",
     contextMode = contextMode, contextRefs = attrs["context"] or "",
     context = contextMode ~= "none" and bounded(context, contextMode == "explicit") or "",

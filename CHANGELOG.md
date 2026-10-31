@@ -8,6 +8,13 @@
   retain the clarification, while changed work requires a new upload. Failed or
   cancelled corrections preserve existing feedback and progress. Off by default;
   available for direct API results only.
+- Correction activities preserve typed text when a photo is uploaded and lock the
+  answer only when image feedback actually offers a correction. Reset always
+  unlocks it; `corrections` without image upload warns and is disabled. Policy,
+  language and provider-setting changes now request fresh feedback without
+  sending with an old key or resetting the visible hint's progress. Correction
+  requests include the previous hint level and explicitly exclude higher-level
+  solution details; later hints treat the note as a carried-forward clarification.
 - A worker that WebKit does not end on Stop now stops itself, also inside
   long C calls (WebKit only: Chromium and Firefox end a terminated worker
   themselves). The page gives each worker a blob URL and revokes it before

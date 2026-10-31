@@ -294,6 +294,14 @@ direct feedback needs a vision-capable provider. Required images are not silentl
 dropped. Mathematics may explicitly fall back to its supplied textual graph
 summary when a provider cannot accept the optional graph image.
 
+Add `corrections="true"` to opt into one clarification exchange after direct API
+feedback on an uploaded response image. The corrected feedback restarts at hint 1;
+later hints keep the clarification without reopening the exchange. A new upload
+resets corrections and hints and unlocks the answer box, preserving typed text.
+Text-only feedback does not lock the box. Changed feedback settings require fresh
+feedback before a correction. Without `image-upload="true"`, the build warns and
+disables corrections. Copy-prompt mode does not offer the exchange.
+
 ## The same learning context in all four integrations
 
 | Setting | Meaning |

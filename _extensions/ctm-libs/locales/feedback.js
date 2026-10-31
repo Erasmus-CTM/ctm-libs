@@ -49,7 +49,8 @@ CTMLocales.add("feedback",
     "updateFeedback": "Update feedback",
     "correctionNote": "Your correction:",
     "correctionClosed": "Correction complete. For changed or additional work, upload a new page.",
-    "correctionRestart": "Feedback restarted at hint 1."
+    "correctionRestart": "Feedback restarted at hint 1.",
+    "correctionSettingsChanged": "The feedback settings changed. Request fresh feedback before correcting its reading."
   },
   "de": {
     "button": "Feedback",
@@ -89,7 +90,8 @@ CTMLocales.add("feedback",
     "updateFeedback": "Feedback aktualisieren",
     "correctionNote": "Deine Klarstellung:",
     "correctionClosed": "Klarstellung abgeschlossen. Lade für geänderte oder zusätzliche Arbeit eine neue Seite hoch.",
-    "correctionRestart": "Das Feedback beginnt wieder bei Hinweis 1."
+    "correctionRestart": "Das Feedback beginnt wieder bei Hinweis 1.",
+    "correctionSettingsChanged": "Die Feedback-Einstellungen haben sich geändert. Fordere neues Feedback an, bevor du die Lesart korrigierst."
   },
   "nb": {
     "button": "Tilbakemelding",
@@ -129,7 +131,8 @@ CTMLocales.add("feedback",
     "updateFeedback": "Oppdater tilbakemeldingen",
     "correctionNote": "Din presisering:",
     "correctionClosed": "Presiseringen er behandlet. Last opp en ny side for endret eller nytt arbeid.",
-    "correctionRestart": "Tilbakemeldingen startet på nytt på hint 1."
+    "correctionRestart": "Tilbakemeldingen startet på nytt på hint 1.",
+    "correctionSettingsChanged": "Innstillingene for tilbakemelding er endret. Be om ny tilbakemelding før du korrigerer lesingen."
   },
   "es": {
     "button": "Comentarios",
@@ -169,7 +172,8 @@ CTMLocales.add("feedback",
     "updateFeedback": "Actualizar comentarios",
     "correctionNote": "Tu aclaración:",
     "correctionClosed": "Aclaración completada. Sube una nueva página para evaluar trabajo modificado o adicional.",
-    "correctionRestart": "Los comentarios vuelven a la pista 1."
+    "correctionRestart": "Los comentarios vuelven a la pista 1.",
+    "correctionSettingsChanged": "La configuración de los comentarios ha cambiado. Solicita nuevos comentarios antes de corregir la lectura."
   },
   "nn": {
     "button": "Tilbakemelding",
@@ -209,7 +213,8 @@ CTMLocales.add("feedback",
     "updateFeedback": "Oppdater tilbakemeldinga",
     "correctionNote": "Di presisering:",
     "correctionClosed": "Presiseringa er behandla. Last opp ei ny side for endra eller nytt arbeid.",
-    "correctionRestart": "Tilbakemeldinga starta på nytt på hint 1."
+    "correctionRestart": "Tilbakemeldinga starta på nytt på hint 1.",
+    "correctionSettingsChanged": "Innstillingane for tilbakemelding er endra. Be om ny tilbakemelding før du korrigerer lesinga."
   }
 }
 /*END-JSON*/
