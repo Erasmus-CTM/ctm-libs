@@ -394,13 +394,14 @@ const OWN_KEYS: Record<string, 'boolean' | 'string' | 'assets'> = {'tab-links': 
 const show = (value: unknown) => typeof value === 'object' ? JSON.stringify(value) : String(value);
 function sectionSettings(section: string) {
   const out: Record<string, Entry> = {};
-  const known = [...SHARED_KEYS, ...Object.keys(OWN_KEYS), 'variants'];
+  const known = [...SHARED_KEYS, ...Object.keys(OWN_KEYS), 'variants', 'exam'];
   for (const [key, origin] of keysOf(section)) {
     if (CREDENTIAL.test(key)) continue;
     if (section === 'ctm-assessment' && !known.includes(key)) {
       unknown('ctm-assessment', key, origin, known);
       continue;
     }
+    if (section === 'ctm-assessment' && key === 'exam') continue;
     const entry = resolveKey(section, key);
     if (!entry || entry.value === null || entry.value === undefined) continue;
     if (key === 'save' && !['answers', 'none'].includes(entry.value as string)) {
@@ -420,6 +421,7 @@ function sectionSettings(section: string) {
     out[key] = entry;
   }
   if (section === 'ctm-assessment') {
+    examSwitch(out);
     const approval = variantApproval();
     if (approval) {
       if (!['required', 'optional'].includes(approval.value as string)) {
@@ -428,6 +430,38 @@ function sectionSettings(section: string) {
     }
   }
   return out;
+}
+
+// ctm-assessment: exam is OR over every level and the merged metadata: any
+// level (a profile, say) makes the build an exam build, none makes it an
+// ordinary one again. origin names the first level that set it. An exam build
+// has no AI feedback (lua/feedback.lua) and needs local assets.
+function examSwitch(out: Record<string, Entry>) {
+  const found: Entry[] = [];
+  for (const level of levels) {
+    const values = level.sections['ctm-assessment'];
+    if (values && Object.hasOwn(values, 'exam')) found.push({value: values.exam, origin: level.origin});
+  }
+  const meta = documentMeta['ctm-assessment'];
+  if (meta && Object.hasOwn(meta, 'exam')) found.push({value: meta.exam, origin: 'document metadata'});
+  let on: string | undefined, last: string | undefined;
+  for (const {value, origin} of found) {
+    const exam = value === true || value === 'true' ? true : value === false || value === 'false' ? false : null;
+    if (exam === null) {
+      errors.push('ctm-assessment: exam must be true or false (found ' + show(value) + ' in ' + origin + ')');
+      continue;
+    }
+    if (exam && on === undefined) on = origin;
+    last = origin;
+  }
+  if (on !== undefined) out.exam = {value: true, origin: on};
+  else if (last !== undefined) out.exam = {value: false, origin: last};
+}
+function examAssets() {
+  const exam = settings['ctm-assessment']?.exam, assets = settings['ctm-assessment']?.assets;
+  if (exam?.value !== true || assets?.value === 'local') return;
+  errors.push('ctm-assessment: exam: true (' + exam.origin + ') requires assets: local (found '
+    + (assets ? show(assets.value) + ' in ' + assets.origin : 'the default, cdn') + '): an exam build loads nothing from the internet.');
 }
 
 // Build configuration is read alongside the settings levels. Quarto merges
@@ -472,6 +506,7 @@ try {
   credentials();
   for (const section of sections) settings[section] = section === 'ai-feedback' ? feedbackSettings() : sectionSettings(section);
   if (sections.includes('ai-feedback')) policyResult = policies();
+  examAssets();
   localAssets();
 } catch (error) {
   errors.push('ctm-libs settings: ' + ((error as Error).message || String(error)));

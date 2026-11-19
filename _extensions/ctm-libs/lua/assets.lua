@@ -93,7 +93,13 @@ return function(ctm)
           end
         end
       end
-      if ctm.settings.bool("ai-feedback", "enabled", {default = true}) then
+      -- An exam build (ctm-assessment: exam, read-settings.ts) is local and
+      -- without AI feedback (lua/feedback.lua); the render says so per page.
+      local exam = ctm.settings.entry("ctm-assessment", "exam")
+      if exam and exam.value == true then
+        quarto.log.warning("ctm-assessment: exam build (exam: true in " .. tostring(exam.origin) .. "): "
+          .. ctm.source.pageName() .. " has no AI feedback or similar problems and uses local assets only.")
+      elseif ctm.settings.bool("ai-feedback", "enabled", {default = true}) then
         quarto.log.warning("ctm-assessment: AI feedback needs an internet connection even when assets are local.")
       end
     end

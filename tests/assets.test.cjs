@@ -40,7 +40,7 @@ const table = JSON.parse(fs.readFileSync(path.join(C.library, 'assets.json'), 'u
 const runtime = fs.readFileSync(path.join(C.library, 'runtime', 'pyodide-runtime.js'), 'utf8');
 const pyVersion = runtime.match(/var indexURL = '[^']+\/v([^/]+)\/full\/';/)[1];
 function render(dir) { return C.render(dir, [], {CTM_COMPONENT_DEV: '1'}); }
-function project({local = true, resources = true, theme = true, extra = '', front = '', nested = false, manifest = true, body = ''} = {}) {
+function project({local = true, resources = true, theme = true, extra = '', front = '', nested = false, manifest = true, body = '', ai = false, exam = false} = {}) {
   const dir = C.tempdir('ctm-assets-');
   C.install(dir); C.installProbe(dir);
   const file = nested ? 'sub/page.qmd' : 'page.qmd';
@@ -49,7 +49,7 @@ function project({local = true, resources = true, theme = true, extra = '', fron
   C.write(dir, {
     '_quarto.yml': 'project:\n  type: default\n  render: [' + file + ']\n' + (resources ? '  resources: ["_ctm-assets/**"]\n' : '') +
       'filters: [ctm-libs, probe]\n' + (theme ? 'format:\n  html:\n    theme: [default, offline.scss]\n' : 'format: html\n') +
-      'ctm-assessment:\n  assets: ' + (local ? 'local' : 'cdn') + '\nai-feedback:\n  enabled: false\n' + extra,
+      'ctm-assessment:\n  assets: ' + (local ? 'local' : 'cdn') + '\n' + (exam ? '  exam: true\n' : '') + 'ai-feedback:\n  enabled: ' + ai + '\n' + extra,
     'offline.scss': '/*-- scss:defaults --*/\n$web-font-path: false;\n',
     [file]: '---\ntitle: Asset probe\n' + front + '---\n\n$x^2$\n' + body + C.probe('asset', 'return {mode=ctm.assets.mode(), url=ctm.assets.url("pyodide"), katex=ctm.assets.url("katex", "dist/katex.mjs")}'),
     ['_ctm-assets/pyodide/' + pyVersion + '/pyodide-lock.json']: JSON.stringify({packages: {numpy: {}}})
@@ -99,7 +99,9 @@ test('local preflight rejects missing bundle, wrong versions, missing resources/
     [{extra:'jsxgraph:\n  mjx_fonts: https://custom.test/fonts/\n'}, /author HTTP jsxgraph\.mjx_fonts/],
     [{extra:'jsxgraph:\n  src_mjx_preload: https://custom.test/preload.js\n'}, /author HTTP jsxgraph\.src_mjx_preload/],
     [{extra:'pyodide:\n  packages: [not-in-bundle]\n'}, /outside the local subset/],
-    [{body:'\n```{.jsxgraph}\nvar board = 1;\n```\n'}, /do not support JSXGraph boards/]
+    [{body:'\n```{.jsxgraph}\nvar board = 1;\n```\n'}, /do not support JSXGraph boards/],
+    [{front:'ctm-assessment:\n  exam: maybe\n'}, /ctm-assessment: exam must be true or false \(found maybe in page\.qmd\)/],
+    [{local:false,manifest:false,resources:false,theme:false,exam:true}, /ctm-assessment: exam: true \(_quarto\.yml\) requires assets: local \(found cdn in _quarto\.yml\)/]
   ];
   for (const [options, message] of cases) {
     const p=project(options);
@@ -175,6 +177,27 @@ test('local preflight catches format-scoped project overrides hidden by nearer s
     assert.match(r.stderr,/pyodide\.base-url.*format\.html/);
     assert.match(r.stderr,/author HTTP jsxgraph\.src_jxg.*format\.html/);
     assert.match(r.stderr,/author HTTP jsxgraph\.mjx_fonts.*format\.html/);
+  } finally {fs.rmSync(p.dir,{recursive:true,force:true});}
+});
+
+test('an exam build has no AI feedback whatever the profiles and pages say, and the render says so', {skip: !C.hasQuarto}, () => {
+  // AI feedback and similar problems are on in _quarto.yml; the exam profile
+  // only adds exam: true, and the page's exam: false does not undo it.
+  const p=project({ai:true,front:'ctm-assessment:\n  exam: false\n',extra:'  similar: true\n  mode: api\n  without-ai: text\n',
+    body:'\n::: {.ai-feedback #essay}\nWrite one sentence about energy.\n:::\n'
+      +C.probe('exam','local on, reason = ctm.feedback.enabled(); return {on=on, reason=reason}')});
+  try {
+    C.write(p.dir,{'_quarto-exam.yml':'ctm-assessment:\n  exam: true\n'});
+    let r=render(p.dir);assert.equal(r.status,0,r.stderr);
+    assert.match(r.stderr,/AI feedback needs an internet connection even when assets are local/);
+    assert.match(C.html(p.dir,p.file),/feedback-core\.js/);
+    r=C.render(p.dir,['--profile','exam'],{CTM_COMPONENT_DEV:'1'});assert.equal(r.status,0,r.stderr);
+    const html=C.html(p.dir,p.file);
+    assert.deepEqual(C.probes(html).exam,{on:false,reason:'ctm-assessment: exam: true (_quarto-exam.yml)'});
+    assert.doesNotMatch(html,/feedback-core\.js|ai-feedback\.js|__aiFeedbackConfig|"similar"/);
+    assert.match(html,/ai-feedback-task/);
+    assert.match(r.stderr,/ctm-assessment: exam build \(exam: true in _quarto-exam\.yml\): page\.qmd has no AI feedback or similar problems and uses local assets only/);
+    assert.doesNotMatch(r.stderr,/needs an internet connection/);
   } finally {fs.rmSync(p.dir,{recursive:true,force:true});}
 });
 

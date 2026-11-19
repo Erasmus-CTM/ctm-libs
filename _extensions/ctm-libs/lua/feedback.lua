@@ -25,9 +25,10 @@ do
   _G.__ctmAiFeedbackInstallation = loaded or {path = here, version = ctm.version}
 end
 
--- P22: a build without AI feedback. Off when CTM_FEEDBACK=off or when
--- ai-feedback: enabled resolves to false (any level, the merged metadata;
--- no level can turn it back on). Policies are still read and validated, so
+-- P22: a build without AI feedback. Off when CTM_FEEDBACK=off, in an exam
+-- build (ctm-assessment: exam: true at any level) or when ai-feedback:
+-- enabled resolves to false (any level, the merged metadata; no level can
+-- turn it back on). Policies are still read and validated, so
 -- both builds fail alike; nothing of AI feedback reaches the HTML.
 local switch = nil
 -- One build message per page: its exercises that only AI feedback can
@@ -99,7 +100,10 @@ function M.enabled()
     if html then
       -- Stops when the page's settings were not loaded (a component bug).
       entry = ctm.settings.entry("ai-feedback", "enabled")
-      if entry and entry.value == false then
+      local exam = ctm.settings.entry("ctm-assessment", "exam")
+      if exam and exam.value == true then
+        switch = {on = false, reason = "ctm-assessment: exam: true (" .. tostring(exam.origin) .. ")"}
+      elseif entry and entry.value == false then
         switch = {on = false, reason = "ai-feedback: enabled: false (" .. tostring(entry.origin) .. ")"}
       end
     end

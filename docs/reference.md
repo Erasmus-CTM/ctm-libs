@@ -11,7 +11,7 @@ CTM settings live in five sections of the Quarto metadata:
 
 | Section | Keys |
 |---|---|
-| `ctm-assessment` | `stop-after` (seconds before a running check offers Stop, default 20), `lang` (the language of every component), `tab-links` (links into tabs and reveals, default true), `modes` (the lecture/reading switch on pages with reading steps, default true), `markdown-lint` (warn about raw HTML that has a Markdown form, default false) |
+| `ctm-assessment` | `stop-after` (seconds before a running check offers Stop, default 20), `lang` (the language of every component), `tab-links` (links into tabs and reveals, default true), `modes` (the lecture/reading switch on pages with reading steps, default true), `markdown-lint` (warn about raw HTML that has a Markdown form, default false), `exam` (an [exam build](#exam-builds), default false) |
 | `ai-feedback` | `mode` (`copy`, `api`), `storage` (`local`, `session`), `base-url`, `model`, `ui-language`, `feedback-language`, `enabled`, `policy-files`, `policy` |
 | `math-exercise` | `lang`, `feedback` (`auto`, `true`, `false`), `stop-after` |
 | `py-exercise` | `lang`, `feedback`, `stop-after`, `forbidden-imports`, `forbidden-keywords`, `submission`, `submission-key`, `show-test-hints` |
@@ -32,8 +32,9 @@ of a section keeps the project's other keys of that section. For a key:
 | 5 | `lang` only: Quarto's `lang` |
 | 6 | the default |
 
-Two exceptions: `ai-feedback: enabled` is off when any level turns it off
-(below), and the policy keys follow their own rules ([policies](feedback-policies.md#load-definitions-then-select)).
+Three exceptions: `ai-feedback: enabled` is off when any level turns it off
+(below), `ctm-assessment: exam` is on when any level turns it on, and the
+policy keys follow their own rules ([policies](feedback-policies.md#load-definitions-then-select)).
 
 Checks at render time:
 
@@ -180,6 +181,25 @@ Any level can turn AI feedback off; no page can turn it back on. Then:
   out (the exercises and cells whose feedback a component left out, or its
   own `ai-feedback: enabled: true`); a project-wide `enabled: true` is not
   repeated on every page, and pages without AI content stay quiet.
+
+### Exam builds
+
+```yaml
+# _quarto-exam.yml, then: quarto render --profile exam
+ctm-assessment:
+  exam: true
+  assets: local
+```
+
+An exam build is a build without AI feedback whatever the other levels say:
+any level (a profile, `_metadata.yml`, a page) can set `exam: true`, and none
+can set it back to false. AI feedback and similar-problem generation are off
+as above (no scripts, buttons or provider settings in the HTML; the build
+message names `ctm-assessment: exam: true` and its file). An exam build needs
+`assets: local`; another value stops the render. Each page's render says that
+it is an exam build. A page with JSXGraph boards stops a local build, exam
+or not: boards cannot load the local MathJax yet. Without `exam`, a local build with AI feedback on warns that AI feedback needs
+an internet connection.
 
 ### Exercises that only AI feedback can assess
 

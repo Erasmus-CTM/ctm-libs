@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `ctm-assessment: exam: true` makes an exam build: AI feedback and
+  similar-problem generation are off as with `ai-feedback: enabled: false`,
+  whatever the profiles and pages say (any level can set it, none can unset
+  it), and assets must be local (another value stops the render). Each page's
+  render says it is an exam build. Local builds without `exam` keep the warning
+  that AI feedback needs an internet connection.
 - Streamed replies (generation, solving) are bounded. A stream ends at the
   first `finish_reason` or `[DONE]`, without reading or appending what follows;
   one that closes before either fails as `STREAM_INCOMPLETE` instead of showing
