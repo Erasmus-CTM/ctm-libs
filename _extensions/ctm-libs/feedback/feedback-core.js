@@ -300,6 +300,12 @@
     const slow = /(?:reasoning|thinking|magistral|gpt-oss|glm-5\.2|kimi-k2\.(?:5|6)(?!-instant)|minimax[^/]*m3)/i.test(id);
     return { id, incompatible, slow, recommended: !incompatible && !slow && /(?:instant|instruct|mistral-medium|borealis)/i.test(id), optionalBody, systemPrefix, hasOptionalBody: Object.keys(optionalBody).length > 0 };
   }
+  // Bounds of a reply (P01): maxText characters of answer text (streamed or
+  // not; a 16384-token answer is about 65,000) and maxLine characters of one
+  // server-sent event line. A stream also ends after idleMs without progress
+  // (default: the request's time budget; keep-alive comments and malformed
+  // events are no progress) and deadlineMs in all (default: twice the budget).
+  const replyLimits = { maxText: 100000, maxLine: 1048576 };
   const memoryCapabilities = new Map();
   const cacheKey = 'ai-feedback-capabilities-v1';
   function endpoint(config) {
@@ -329,15 +335,17 @@
       if (!fetcher) throw new FeedbackError('CONFIGURATION', 'Fetch is unavailable.');
       if (!Array.isArray(messages) || !messages.length) fail('Messages are required.');
       const controller = new AbortController(), started = Date.now();
-      let timedOut = false;
+      let timedOut = '';
       const abort = () => controller.abort();
       if (options.signal?.aborted) throw new FeedbackError('ABORTED', 'Feedback cancelled.');
       options.signal?.addEventListener('abort', abort, { once: true });
       // The budget is per provider request, so a correction or format retry is
       // a fresh model call rather than the rest of the previous call's time.
       const budget = options.timeoutMs ?? (options.generation ? 300000 : dependencies.timeoutMs ?? 60000);
-      let timer;
-      const arm = () => { clearTimeout(timer); timer = setTimeout(() => { timedOut = true; controller.abort(); }, budget); };
+      const limits = { ...replyLimits, idleMs: budget, deadlineMs: 2 * budget, ...dependencies.replyLimits, ...options.replyLimits };
+      let timer, deadline;
+      const arm = (ms = budget, reason = 'budget') => { clearTimeout(timer); timer = setTimeout(() => { timedOut = reason; controller.abort(); }, ms); };
+      const tooLong = (limit = limits.maxText) => new FeedbackError('OUTPUT_LIMIT', 'The provider’s reply exceeded its size limit (' + limit + ' characters).');
       const policy = options.generation ? {...modelPolicy(config.model), optionalBody: {}, hasOptionalBody: false, systemPrefix: ''} : modelPolicy(config.model);
       if (policy.incompatible) { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); throw new FeedbackError('CONFIGURATION', 'Choose a chat model, not an embedding model.'); }
       const headers = { 'Content-Type': 'application/json' };
@@ -348,33 +356,55 @@
       // model can think for minutes before its first token, and proxies in
       // front of a provider (nginx, Cloudflare) close a silent connection after
       // about a minute without CORS headers, which the browser reports as a
-      // network failure. Streamed chunks keep the connection busy; each chunk
-      // renews the time budget.
-      async function readStream(response) {
+      // network failure. Streamed chunks keep the connection busy; content,
+      // reasoning and the finish renew the idle limit, within the deadline.
+      // The stream ends at the first finish_reason or [DONE] (the rest is not
+      // read); one that closes before either is incomplete.
+      async function readStream(response, sent) {
         const reader = response.body.getReader(), decoder = new TextDecoder();
-        let buffer = '', content = '', finish = null;
+        let buffer = '', content = '', finish = null, ended = false;
         const take = line => {
+          if (line.length > limits.maxLine) throw tooLong(limits.maxLine);
           line = line.trim();
           if (!line.startsWith('data:')) return;
           const payload = line.slice(5).trim();
-          if (payload === '[DONE]') return;
+          if (payload === '[DONE]') { ended = true; return; }
           let chunk;
           try { chunk = JSON.parse(payload); } catch { return; }
           if (chunk.error) throw new FeedbackError('HTTP', 'API error: ' + JSON.stringify(chunk.error).slice(0, 300));
-          const choice = chunk.choices?.[0];
-          if (typeof choice?.delta?.content === 'string') content += choice.delta.content;
-          if (choice?.finish_reason) finish = choice.finish_reason;
+          const choice = chunk.choices?.[0], delta = choice?.delta || {};
+          let progress = false;
+          if (typeof delta.content === 'string' && delta.content) {
+            if (content.length + delta.content.length > limits.maxText) throw tooLong();
+            content += delta.content; progress = true;
+          }
+          if ([delta.reasoning_content, delta.reasoning].some(part => typeof part === 'string' && part)) progress = true;
+          if (choice?.finish_reason) { finish = choice.finish_reason; ended = true; }
+          if (progress) arm(limits.idleMs, 'idle');
         };
-        for (;;) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          arm();
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop();
-          lines.forEach(take);
+        // A body that ignores the abort must not keep the request waiting.
+        const stopped = new Promise((resolve, reject) => {
+          if (controller.signal.aborted) reject(new Error('aborted'));
+          controller.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+        });
+        stopped.catch(() => {});
+        arm(limits.idleMs, 'idle');
+        deadline = setTimeout(() => { timedOut = 'deadline'; controller.abort(); }, Math.max(0, limits.deadlineMs - (Date.now() - sent)));
+        try {
+          while (!ended) {
+            const { value, done } = await Promise.race([reader.read(), stopped]);
+            if (done) { take(buffer + decoder.decode()); break; }
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+            for (const line of lines) { take(line); if (ended) break; }
+            if (buffer.length > limits.maxLine) throw tooLong(limits.maxLine);
+          }
+        } finally {
+          clearTimeout(deadline);
+          Promise.resolve().then(() => reader.cancel?.()).catch(() => {});
         }
-        take(buffer + decoder.decode());
+        if (!ended) throw new FeedbackError('STREAM_INCOMPLETE', 'The provider’s reply broke off before it was complete.');
         return { choices: [{ message: { content }, finish_reason: finish }] };
       }
       async function once(correction) {
@@ -391,6 +421,7 @@
           const body = { model: config.model, messages: activeMessages, [tokenField]: options.maxTokens ?? (options.generation ? 16384 : dependencies.maxTokens ?? 8192) };
           if (optional) Object.assign(body, policy.optionalBody);
           if (stream) body.stream = true;
+          const sent = Date.now();
           arm();
           const response = await fetcher(base + '/chat/completions', { method: 'POST', headers, body: JSON.stringify(body), signal: controller.signal });
           if (!response.ok) {
@@ -409,12 +440,13 @@
             throw new FeedbackError('HTTP', 'API ' + response.status + ': ' + error.slice(0, 300));
           }
           if (optional) saveCapability('supported');
-          const data = stream && /text\/event-stream/.test(response.headers?.get?.('content-type') || '') ? await readStream(response) : await response.json();
+          const data = stream && /text\/event-stream/.test(response.headers?.get?.('content-type') || '') ? await readStream(response, sent) : await response.json();
           const choice = data?.choices?.[0];
           if (choice?.finish_reason === 'length') throw new FeedbackError('TRUNCATED', 'The provider cut the feedback short. Try a different model.');
           let text = choice?.message?.content;
           if (Array.isArray(text)) text = text.filter(p => p.type === 'text' && typeof p.text === 'string').map(p => p.text).join('');
           if (typeof text !== 'string' || !text.trim()) throw new FeedbackError('EMPTY', 'The provider returned no feedback.');
+          if (text.length > limits.maxText) throw tooLong();
           return text.trim();
         }
         throw new FeedbackError('COMPATIBILITY', 'The provider rejected the supported request formats.');
@@ -431,13 +463,19 @@
         if (!text.trim()) throw new FeedbackError('EMPTY', 'The provider returned no final answer.');
         return { text, format: 'markdown' };
       } catch (error) {
-        if (controller.signal.aborted) throw new FeedbackError(timedOut ? 'TIMEOUT' : 'ABORTED', timedOut ? 'Feedback timed out. Try an instant or non-reasoning model.' : 'Feedback cancelled.');
+        if (controller.signal.aborted) {
+          const seconds = ms => Math.round(ms / 1000) + ' s';
+          throw new FeedbackError(timedOut ? 'TIMEOUT' : 'ABORTED', !timedOut ? 'Feedback cancelled.'
+            : timedOut === 'idle' ? 'Feedback timed out: the provider sent nothing new for ' + seconds(limits.idleMs) + '.'
+            : timedOut === 'deadline' ? 'Feedback timed out: the reply took longer than ' + seconds(limits.deadlineMs) + '.'
+            : 'Feedback timed out. Try an instant or non-reasoning model.');
+        }
         if (error instanceof FeedbackError) throw error;
         // The elapsed time tells a refused request (0 s) from a proxy that cut a
         // long one (often 60 or 100 s); the browser hides the reason itself.
         const seconds = Math.round((Date.now() - started) / 1000);
         throw new FeedbackError('NETWORK', 'Could not contact the provider (after ' + seconds + ' s: ' + String(error?.message || error).slice(0, 120) + '). Check the connection and browser access (CORS).', { cause: error });
-      } finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
+      } finally { clearTimeout(timer); clearTimeout(deadline); options.signal?.removeEventListener('abort', abort); }
     }
     return { request: (input, options = {}) => {
       const language = input.feedback?.language;

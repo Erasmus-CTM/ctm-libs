@@ -762,7 +762,8 @@ files separately; image bytes are never placed in clipboard text.
 Provider settings live on the client, separately from learning content.
 Requests have a 60-second deadline including response-body reading. Compatible
 model controls may be negotiated; network errors, rate limits and server errors
-are not blindly retried. Empty and truncated replies are rejected. Reasoning
+are not blindly retried. Empty and truncated replies are rejected, and so are
+replies over 100,000 characters (`OUTPUT_LIMIT`). Reasoning
 tags cause one corrective retry. No Latin-only language heuristic applies to
 the general API. Provider model names remain freely editable.
 
@@ -774,9 +775,23 @@ corrective retry. `imageFallback: 'text'` explicitly permits a text fallback
 for an optional illustration. The default rejects unsupported image requests;
 activities relying on uploaded images must keep that default.
 
+Calls with a budget over 60 seconds stream (`stream: true`, OpenAI-compatible
+server-sent events). The stream ends at the first `finish_reason` or
+`[DONE]`; nothing after it is read. One that closes before either is
+`STREAM_INCOMPLETE`, never a shortened success. An event line over 1 MiB of
+characters, or answer text over 100,000, is `OUTPUT_LIMIT`. Content and
+reasoning deltas are progress; keep-alive comments and malformed events are
+not. After the budget without progress, or twice the budget in all, the call
+ends with `TIMEOUT`. `replyLimits: {maxText, maxLine, idleMs, deadlineMs}`
+(per call, or in `createClient`'s dependencies) changes these bounds. Each
+limit cancels the reader.
+
 Errors are `FeedbackError` objects with a stable `code`: `INVALID_REQUEST`,
 `CONFIGURATION`, `HTTP`, `NETWORK`, `TIMEOUT`, `ABORTED`, `EMPTY`, `TRUNCATED`,
-`REASONING`, `VALIDATION`, `IMAGE_UNSUPPORTED`, or `COMPATIBILITY`.
+`STREAM_INCOMPLETE`, `OUTPUT_LIMIT`, `REASONING`, `VALIDATION`,
+`IMAGE_UNSUPPORTED`, or `COMPATIBILITY`. The feedback interface shows
+`ABORTED`, `TIMEOUT`, `STREAM_INCOMPLETE` and `OUTPUT_LIMIT` in the learner's
+language (`locales/feedback.js`), other errors with their message.
 
 ### UI adapter
 

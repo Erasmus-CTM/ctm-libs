@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Streamed replies (generation, solving) are bounded. A stream ends at the
+  first `finish_reason` or `[DONE]`, without reading or appending what follows;
+  one that closes before either fails as `STREAM_INCOMPLETE` instead of showing
+  a clipped reply as complete. Answer text over 100,000 characters (streamed or
+  not) and an event line over 1 MiB fail as `OUTPUT_LIMIT` before they are
+  kept. Only content, reasoning and the finish renew the time budget, so
+  keep-alive comments no longer hold a request open; every stream also ends
+  after twice the budget (600 s for generation). Each limit cancels the reader.
+  The feedback interface shows these failures and timeouts in the learner's
+  language.
 - Image feedback activities can opt into one correction exchange with
   `corrections="true"`. A short clarification is checked against the original
   image and preceding feedback; the replacement restarts at hint 1. Later hints

@@ -50,7 +50,10 @@ CTMLocales.add("feedback",
     "correctionNote": "Your correction:",
     "correctionClosed": "Correction complete. For changed or additional work, upload a new page.",
     "correctionRestart": "Feedback restarted at hint 1.",
-    "correctionSettingsChanged": "The feedback settings changed. Request fresh feedback before correcting its reading."
+    "correctionSettingsChanged": "The feedback settings changed. Request fresh feedback before correcting its reading.",
+    "timedOut": "The provider took too long to answer. Try again, or choose a faster model.",
+    "incomplete": "The provider’s reply broke off before it was complete. Try again.",
+    "tooLong": "The provider’s reply was too long. Try again, or choose another model."
   },
   "de": {
     "button": "Feedback",
@@ -91,7 +94,10 @@ CTMLocales.add("feedback",
     "correctionNote": "Deine Klarstellung:",
     "correctionClosed": "Klarstellung abgeschlossen. Lade für geänderte oder zusätzliche Arbeit eine neue Seite hoch.",
     "correctionRestart": "Das Feedback beginnt wieder bei Hinweis 1.",
-    "correctionSettingsChanged": "Die Feedback-Einstellungen haben sich geändert. Fordere neues Feedback an, bevor du die Lesart korrigierst."
+    "correctionSettingsChanged": "Die Feedback-Einstellungen haben sich geändert. Fordere neues Feedback an, bevor du die Lesart korrigierst.",
+    "timedOut": "Der Anbieter hat zu lange für die Antwort gebraucht. Versuche es erneut oder wähle ein schnelleres Modell.",
+    "incomplete": "Die Antwort des Anbieters brach ab, bevor sie vollständig war. Versuche es erneut.",
+    "tooLong": "Die Antwort des Anbieters war zu lang. Versuche es erneut oder wähle ein anderes Modell."
   },
   "nb": {
     "button": "Tilbakemelding",
@@ -132,7 +138,10 @@ CTMLocales.add("feedback",
     "correctionNote": "Din presisering:",
     "correctionClosed": "Presiseringen er behandlet. Last opp en ny side for endret eller nytt arbeid.",
     "correctionRestart": "Tilbakemeldingen startet på nytt på hint 1.",
-    "correctionSettingsChanged": "Innstillingene for tilbakemelding er endret. Be om ny tilbakemelding før du korrigerer lesingen."
+    "correctionSettingsChanged": "Innstillingene for tilbakemelding er endret. Be om ny tilbakemelding før du korrigerer lesingen.",
+    "timedOut": "Leverandøren brukte for lang tid på å svare. Prøv igjen, eller velg en raskere modell.",
+    "incomplete": "Svaret fra leverandøren stoppet før det var ferdig. Prøv igjen.",
+    "tooLong": "Svaret fra leverandøren var for langt. Prøv igjen, eller velg en annen modell."
   },
   "es": {
     "button": "Comentarios",
@@ -173,7 +182,10 @@ CTMLocales.add("feedback",
     "correctionNote": "Tu aclaración:",
     "correctionClosed": "Aclaración completada. Sube una nueva página para evaluar trabajo modificado o adicional.",
     "correctionRestart": "Los comentarios vuelven a la pista 1.",
-    "correctionSettingsChanged": "La configuración de los comentarios ha cambiado. Solicita nuevos comentarios antes de corregir la lectura."
+    "correctionSettingsChanged": "La configuración de los comentarios ha cambiado. Solicita nuevos comentarios antes de corregir la lectura.",
+    "timedOut": "El proveedor tardó demasiado en responder. Inténtalo de nuevo o elige un modelo más rápido.",
+    "incomplete": "La respuesta del proveedor se interrumpió antes de completarse. Inténtalo de nuevo.",
+    "tooLong": "La respuesta del proveedor era demasiado larga. Inténtalo de nuevo o elige otro modelo."
   },
   "nn": {
     "button": "Tilbakemelding",
@@ -214,7 +226,10 @@ CTMLocales.add("feedback",
     "correctionNote": "Di presisering:",
     "correctionClosed": "Presiseringa er behandla. Last opp ei ny side for endra eller nytt arbeid.",
     "correctionRestart": "Tilbakemeldinga starta på nytt på hint 1.",
-    "correctionSettingsChanged": "Innstillingane for tilbakemelding er endra. Be om ny tilbakemelding før du korrigerer lesinga."
+    "correctionSettingsChanged": "Innstillingane for tilbakemelding er endra. Be om ny tilbakemelding før du korrigerer lesinga.",
+    "timedOut": "Leverandøren brukte for lang tid på å svare. Prøv igjen, eller vel ein raskare modell.",
+    "incomplete": "Svaret frå leverandøren stoppa før det var ferdig. Prøv igjen.",
+    "tooLong": "Svaret frå leverandøren var for langt. Prøv igjen, eller vel ein annan modell."
   }
 }
 /*END-JSON*/

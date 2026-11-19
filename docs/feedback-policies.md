@@ -208,5 +208,8 @@ blocks before validation, without disabling the reasoning model. Per-call
 `timeoutMs` and `maxTokens` override these budgets. Ordinary feedback remains
 60 seconds/8192 and rejects reasoning leakage. The time budget applies to each
 provider request: a correction retry after a rejected reply starts a fresh
-budget instead of inheriting what is left of the first call's. `generator-model` sets a generation model;
+budget instead of inheriting what is left of the first call's. These calls
+stream: content and reasoning renew the budget, keep-alive comments do not,
+and a stream ends after twice the budget in all ([API](api.md#prompt-and-transport)).
+`generator-model` sets a generation model;
 learners may override it in Feedback settings. Copy mode cannot generate.
