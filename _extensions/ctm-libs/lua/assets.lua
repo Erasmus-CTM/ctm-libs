@@ -137,12 +137,20 @@ return function(ctm)
   -- JSXGraph boards are data: frames: inside one, the board's local MathJax
   -- path has no base and never loads. Until the boards can load local files
   -- (consolidation step 5b), a local build of a page with boards stops instead
-  -- of publishing boards without their math.
+  -- of publishing boards without their math. STACK questions grade with
+  -- Maxima or SymPy, which the offline bundle does not contain: a local
+  -- build of a page with STACK questions stops likewise.
   function M.check(doc)
     if not quarto.doc.is_format("html") or M.mode() ~= "local" then return end
-    if ctm.deps.uses(doc).jsxgraph then
-      ctm.fail("ctm-assessment: local assets do not support JSXGraph boards yet (`.jsxgraph` blocks): "
-        .. "a board cannot load the local MathJax. Build this page with CDN assets, or remove its boards.")
+    local used = ctm.deps.uses(doc)
+    if used.jsxgraph then
+      ctm.fail("ctm-assessment: local assets do not support JSXGraph boards yet (`.jsxgraph` blocks, "
+        .. ctm.source.pageName() .. "): a board cannot load the local MathJax. Build this page with CDN assets, or remove its boards.")
+    end
+    if used.stack then
+      ctm.fail("ctm-assessment: local assets do not support STACK questions (`.stack-question` blocks, "
+        .. ctm.source.pageName() .. "): they need the online build, because Maxima and SymPy are not in the offline bundle. "
+        .. "Build this page with CDN assets, or remove its STACK questions.")
     end
   end
   function M.prepare(meta)

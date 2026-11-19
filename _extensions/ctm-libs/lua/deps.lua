@@ -56,12 +56,16 @@ return function(ctm)
     return manifest and pandoc.path.directory(manifest) or nil
   end
 
-  -- What the page's source uses: `.ai-feedback` activities and `.jsxgraph` blocks.
+  -- What the page's source uses: `.ai-feedback` activities, `.jsxgraph`
+  -- blocks and STACK questions (`.stack-question` blocks, ctm-stack).
   function M.uses(doc)
     local used = {}
     doc.blocks:walk({
       Div = function(div) if div.classes:includes("ai-feedback") then used["ai-feedback"] = true end end,
-      CodeBlock = function(block) if block.classes:includes("jsxgraph") then used.jsxgraph = true end end,
+      CodeBlock = function(block)
+        if block.classes:includes("jsxgraph") then used.jsxgraph = true end
+        if block.classes:includes("stack-question") then used.stack = true end
+      end,
     })
     return used
   end

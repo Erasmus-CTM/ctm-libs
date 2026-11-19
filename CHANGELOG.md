@@ -8,6 +8,9 @@
   it), and assets must be local (another value stops the render). Each page's
   render says it is an exam build. Local builds without `exam` keep the warning
   that AI feedback needs an internet connection.
+- A local build of a page with STACK questions (`.stack-question` blocks) stops
+  and names the page: they need the online build, because Maxima and SymPy are
+  not in the offline bundle. The JSXGraph-board stop names the page too.
 - Streamed replies (generation, solving) are bounded. A stream ends at the
   first `finish_reason` or `[DONE]`, without reading or appending what follows;
   one that closes before either fails as `STREAM_INCOMPLETE` instead of showing

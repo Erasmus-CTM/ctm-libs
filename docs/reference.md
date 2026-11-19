@@ -197,8 +197,10 @@ can set it back to false. AI feedback and similar-problem generation are off
 as above (no scripts, buttons or provider settings in the HTML; the build
 message names `ctm-assessment: exam: true` and its file). An exam build needs
 `assets: local`; another value stops the render. Each page's render says that
-it is an exam build. A page with JSXGraph boards stops a local build, exam
-or not: boards cannot load the local MathJax yet. Without `exam`, a local build with AI feedback on warns that AI feedback needs
+it is an exam build. A page with JSXGraph boards or STACK questions stops a
+local build, exam or not: boards cannot load the local MathJax yet, and STACK
+questions need Maxima or SymPy, which the offline bundle does not contain.
+Without `exam`, a local build with AI feedback on warns that AI feedback needs
 an internet connection.
 
 ### Exercises that only AI feedback can assess

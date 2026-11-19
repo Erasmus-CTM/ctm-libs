@@ -99,7 +99,9 @@ test('local preflight rejects missing bundle, wrong versions, missing resources/
     [{extra:'jsxgraph:\n  mjx_fonts: https://custom.test/fonts/\n'}, /author HTTP jsxgraph\.mjx_fonts/],
     [{extra:'jsxgraph:\n  src_mjx_preload: https://custom.test/preload.js\n'}, /author HTTP jsxgraph\.src_mjx_preload/],
     [{extra:'pyodide:\n  packages: [not-in-bundle]\n'}, /outside the local subset/],
-    [{body:'\n```{.jsxgraph}\nvar board = 1;\n```\n'}, /do not support JSXGraph boards/],
+    [{body:'\n```{.jsxgraph}\nvar board = 1;\n```\n'}, /do not support JSXGraph boards yet \(`\.jsxgraph` blocks, page\.qmd\)/],
+    [{body:'\n```{.stack-question #q1}\nquestion-text: "Differentiate \\(x^2\\)."\n```\n'},
+      /do not support STACK questions \(`\.stack-question` blocks, page\.qmd\): they need the online build, because Maxima and SymPy are not in the offline bundle/],
     [{front:'ctm-assessment:\n  exam: maybe\n'}, /ctm-assessment: exam must be true or false \(found maybe in page\.qmd\)/],
     [{local:false,manifest:false,resources:false,theme:false,exam:true}, /ctm-assessment: exam: true \(_quarto\.yml\) requires assets: local \(found cdn in _quarto\.yml\)/]
   ];
