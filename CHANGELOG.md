@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Two ctm-libs installations on one page stop it also when they carry the
+  same version with different files (B1 of the 30 Oct audit): the guard
+  compares a digest of each installation's `lua/` files, not only the
+  version, because the version alone stayed 0.9.0 across many changes.
+- CI tests against ctm-checkers 4cff6aa, the commit the CTM Assessment package
+  ships (H3); it used 57823df.
 - `ctm-assessment: exam: true` makes an exam build: AI feedback and
   similar-problem generation are off as with `ai-feedback: enabled: false`,
   whatever the profiles and pages say (any level can set it, none can unset

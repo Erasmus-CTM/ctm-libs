@@ -24,11 +24,39 @@ local function manifestVersion(folder)
   return found
 end
 
+-- The identity of an installation's code: sha1 over its lua/ files (names
+-- and bytes, sorted). Two installations of one version can still differ
+-- (B1 of the 30 Oct audit: an edited or older copy under the same version).
+local function codeDigest(folder)
+  local root = pandoc.path.join({folder, "lua"})
+  local ok, names = pcall(pandoc.system.list_directory, root)
+  if not ok then return "unreadable" end
+  table.sort(names)
+  local parts = {}
+  for _, name in ipairs(names) do
+    local file = io.open(pandoc.path.join({root, name}), "rb")
+    if file then
+      parts[#parts + 1] = name .. "\0" .. file:read("*a")
+      file:close()
+    end
+  end
+  return pandoc.utils.sha1(table.concat(parts, "\0"))
+end
+
 local cached = rawget(_G, "__ctmLibs")
 if cached then
-  if pandoc.path.normalize(cached.dir) ~= pandoc.path.normalize(dir) and cached.version ~= manifestVersion(dir) then
-    fail("This page combines two CTM installations: " .. cached.dir .. " (" .. cached.version .. ") and "
-      .. dir .. " (" .. manifestVersion(dir) .. "). List only ctm-assessment in filters, or remove the separately added copy.")
+  if pandoc.path.normalize(cached.dir) ~= pandoc.path.normalize(dir) then
+    local version = manifestVersion(dir)
+    local differs = cached.version ~= version
+    if not differs then
+      cached.codeDigest = cached.codeDigest or codeDigest(cached.dir)
+      differs = cached.codeDigest ~= codeDigest(dir)
+    end
+    if differs then
+      local same = cached.version == version and ", with different files" or ""
+      fail("This page combines two CTM installations: " .. cached.dir .. " (" .. cached.version .. ") and "
+        .. dir .. " (" .. version .. same .. "). List only ctm-assessment in filters, or remove the separately added copy.")
+    end
   end
   return cached
 end

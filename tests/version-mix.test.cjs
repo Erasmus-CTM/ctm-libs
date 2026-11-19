@@ -28,11 +28,22 @@ test('the ctm-libs filter and another installation with a different version stop
   } finally { fs.rmSync(dir, {recursive: true, force: true}); }
 });
 
-test('the same version from two installations renders', {skip}, () => {
+test('the same version and files from two installations renders', {skip}, () => {
   const dir = project(C.version());
   try {
     const r = C.render(dir, ['page.qmd']);
     assert.equal(r.status, 0, r.stderr);
+  } finally { fs.rmSync(dir, {recursive: true, force: true}); }
+});
+
+test('the same version with different files stops the page (B1)', {skip}, () => {
+  const dir = project(C.version());
+  try {
+    const settings = path.join(dir, '_extensions', 'other', 'ctm-libs', 'lua', 'settings.lua');
+    fs.appendFileSync(settings, '\n-- an edited copy\n');
+    const r = C.render(dir, ['page.qmd']);
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /This page combines two CTM installations: .*\(0\.9\.0\) and .*other.ctm-libs \(0\.9\.0, with different files\)/s);
   } finally { fs.rmSync(dir, {recursive: true, force: true}); }
 });
 
