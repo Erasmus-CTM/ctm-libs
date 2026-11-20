@@ -13,7 +13,10 @@
   whatever the profiles and pages say (any level can set it, none can unset
   it), and assets must be local (another value stops the render). Each page's
   render says it is an exam build. Local builds without `exam` keep the warning
-  that AI feedback needs an internet connection.
+  that AI feedback needs an internet connection. `exam: true` and
+  `ai-feedback: enabled: false` also count in `metadata-files` and
+  `format: html:` metadata at any level when the page has its own map of the
+  section, which Quarto's merged metadata then drops (M18).
 - A local build of a page with STACK questions (`.stack-question` blocks) stops
   and names the page: they need the online build, because Maxima and SymPy are
   not in the offline bundle. The JSXGraph-board stop names the page too.

@@ -235,6 +235,37 @@ test('an exam build has no AI feedback whatever the profiles and pages say, and 
   } finally {fs.rmSync(p.dir,{recursive:true,force:true});}
 });
 
+// M18: Quarto's merged metadata loses metadata-files and format-scoped
+// metadata when the page has its own ctm-assessment map; exam: true there
+// still makes an exam build, at every level.
+test('exam: true in metadata-files or format-scoped metadata survives a page\'s own ctm-assessment map', {skip: !C.hasQuarto}, () => {
+  const theme = '    theme: [default, offline.scss]\n';
+  const exam = {'exam.yml': 'ctm-assessment:\n  exam: true\n'};
+  const cases = [
+    ['metadata-files', {extra: 'metadata-files: [exam.yml]\n'}, exam, null, 'exam.yml'],
+    ['format scope', {}, {}, theme + '    ctm-assessment:\n      exam: true\n', '_quarto.yml (format.html)'],
+    ['format-scoped metadata-files', {}, exam, theme + '    metadata-files: [exam.yml]\n', 'exam.yml'],
+    ['a metadata file\'s format scope', {extra: 'metadata-files: [exam.yml]\n'},
+      {'exam.yml': 'format:\n  html:\n    ctm-assessment:\n      exam: true\n'}, null, 'exam.yml (format.html)'],
+    ['the page\'s metadata-files', {nested: true, front: 'metadata-files: [exam.yml]\n'}, {'sub/exam.yml': exam['exam.yml']}, null, 'sub/exam.yml'],
+    ['_metadata.yml format scope', {}, {'_metadata.yml': 'format:\n  html:\n    ctm-assessment:\n      exam: true\n'}, null, '_metadata.yml (format.html)'],
+  ];
+  for (const [name, options, files, config, origin] of cases) {
+    const p = project({...options, front: (options.front || '') + 'ctm-assessment:\n  save: none\n',
+      body: C.probe('exam', 'return ctm.settings.entry("ctm-assessment", "exam")')});
+    try {
+      C.write(p.dir, files);
+      if (config) {
+        const file = path.join(p.dir, '_quarto.yml');
+        fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(theme, config));
+      }
+      const r = render(p.dir); assert.equal(r.status, 0, name + ': ' + r.stderr);
+      assert.deepEqual(C.probes(C.html(p.dir, p.file)).exam, {value: true, origin}, name);
+      assert.match(r.stderr, /ctm-assessment: exam build/, name);
+    } finally {fs.rmSync(p.dir, {recursive: true, force: true});}
+  }
+});
+
 test('local asset preflight and API 3 saved-answer registration retain all store settings', {skip: !C.hasQuarto}, () => {
   const p=project({nested:true,front:'ctm-assessment:\n  save: answers\n  progress: true\n  storage-key: union-course\n  export: true\n'});
   try {

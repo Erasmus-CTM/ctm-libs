@@ -217,3 +217,27 @@ test('policies and switch values are checked in both builds', {skip}, () => with
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /ai-feedback: enabled \(_quarto-no-ai\.yml\) must be true or false \(found "no-thanks"\)/);
 }));
+
+// M18: Quarto's merged metadata loses metadata-files and format-scoped
+// metadata when the page has its own ai-feedback map; enabled: false there
+// still turns AI feedback off, at every level.
+test('enabled: false in metadata-files or format-scoped metadata survives a page\'s own ai-feedback map', {skip}, () => {
+  const off = 'ai-feedback:\n  enabled: false\n';
+  const cases = [
+    ['metadata-files', 'metadata-files: [off.yml]\n', {'off.yml': off}, '', 'off.yml'],
+    ['format scope', 'format:\n  html:\n    ai-feedback:\n      enabled: false\n', {}, '', '_quarto.yml (format.html)'],
+    ['format-scoped metadata-files', 'format:\n  html:\n    metadata-files: [off.yml]\n', {'off.yml': off}, '', 'off.yml'],
+    ['the page\'s format scope', '', {}, 'format:\n  html:\n    ai-feedback:\n      enabled: false\n', 'page.qmd (format.html)'],
+  ];
+  for (const [name, config, files, front, origin] of cases) {
+    const dir = C.tempdir('ctm-no-ai-');
+    try {
+      C.install(dir); C.installProbe(dir);
+      C.write(dir, {...files,
+        '_quarto.yml': 'project:\n  type: default\n  render: [page.qmd]\nfilters: [ctm-libs, probe]\n' + config,
+        'page.qmd': '---\ntitle: Page\n' + front + 'ai-feedback:\n  enabled: true\n  mode: api\n---\n' + C.probe('switch', 'return {ctm.feedback.enabled()}')});
+      const r = C.render(dir, [], {CTM_COMPONENT_DEV: '1'}); assert.equal(r.status, 0, name + ': ' + r.stderr);
+      assert.deepEqual(C.probes(C.html(dir, 'page.qmd')).switch, [false, 'ai-feedback: enabled: false (' + origin + ')'], name);
+    } finally { fs.rmSync(dir, {recursive: true, force: true}); }
+  }
+});

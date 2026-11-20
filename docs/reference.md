@@ -33,8 +33,10 @@ of a section keeps the project's other keys of that section. For a key:
 | 6 | the default |
 
 Three exceptions: `ai-feedback: enabled` is off when any level turns it off
-(below), `ctm-assessment: exam` is on when any level turns it on, and the
-policy keys follow their own rules ([policies](feedback-policies.md#load-definitions-then-select)).
+(below), `ctm-assessment: exam` is on when any level turns it on (for both,
+a level's `metadata-files` and `format: html:` metadata count, also when the
+page has its own map of the section), and the policy keys follow their own
+rules ([policies](feedback-policies.md#load-definitions-then-select)).
 
 Checks at render time:
 

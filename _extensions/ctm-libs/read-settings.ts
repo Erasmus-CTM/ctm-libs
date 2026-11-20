@@ -42,7 +42,7 @@ function plain(value: unknown): unknown {
   return value;
 }
 
-type Level = {origin: string, page: boolean, sections: Record<string, Record<string, unknown>>, assets: Record<string, unknown>};
+type Level = {origin: string, file: string, page: boolean, sections: Record<string, Record<string, unknown>>, assets: Record<string, unknown>};
 const levels: Level[] = [];
 
 function readLevel(file: string, page = false) {
@@ -62,7 +62,7 @@ function readLevel(file: string, page = false) {
     errors.push('Cannot read the metadata of ' + origin + ': ' + (error as Error).message);
     return;
   }
-  const level: Level = {origin, page, sections: {}, assets: isMap(document) ? plain(document) as Record<string, unknown> : {}};
+  const level: Level = {origin, file, page, sections: {}, assets: isMap(document) ? plain(document) as Record<string, unknown> : {}};
   for (const section of sections) {
     if (!has(document, section)) continue;
     const value = (document as Record<string, unknown>)[section];
@@ -152,6 +152,48 @@ function variantApproval(): Entry | undefined {
   const meta = leaf(documentMeta['ctm-assessment'], 'document metadata');
   if (!fromPage && meta !== undefined && !(file && same(file.value, meta))) return {value: meta, origin: 'document metadata'};
   return file;
+}
+// The sticky switches (ai-feedback: enabled, ctm-assessment: exam) at every
+// level, in order, then in the merged metadata: at each level also its
+// format-scoped metadata (format: html:) and its metadata-files (top level or
+// format-scoped, relative to the level's file, each with its own format
+// scope). The merged metadata loses all of these when the page has its own
+// map of the section (M18 of the 30 Oct audit).
+const metadataFiles = new Map<string, Record<string, unknown> | null>();
+function metadataFile(file: string): Record<string, unknown> | null {
+  if (!metadataFiles.has(file)) {
+    let document: unknown = null;
+    try { document = parse(Deno.readTextFileSync(file)); } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) errors.push('Cannot read the metadata of ' + label(file) + ': ' + (error as Error).message);
+    }
+    metadataFiles.set(file, isMap(document) ? plain(document) as Record<string, unknown> : null);
+  }
+  return metadataFiles.get(file)!;
+}
+function switchValues(section: string, key: string): (Entry & {page: boolean})[] {
+  const found: (Entry & {page: boolean})[] = [];
+  const add = (values: unknown, origin: string, page = false) => {
+    if (isMap(values) && Object.hasOwn(values as object, key)) found.push({value: (values as Record<string, unknown>)[key], origin, page});
+  };
+  const html = (document: Record<string, unknown>) => {
+    const format = document.format;
+    return isMap(format) && isMap((format as Record<string, unknown>).html) ? (format as Record<string, Record<string, unknown>>).html : {};
+  };
+  for (const level of levels) {
+    add(level.sections[section], level.origin, level.page);
+    add(html(level.assets)[section], level.origin + ' (format.html)');
+    for (const list of [level.assets['metadata-files'], html(level.assets)['metadata-files']]) {
+      for (const name of Array.isArray(list) ? list : typeof list === 'string' ? [list] : []) {
+        if (typeof name !== 'string') continue;
+        const file = resolve(dirname(level.file), name), document = metadataFile(file);
+        if (!document) continue;
+        add(document[section], label(file));
+        add(html(document)[section], label(file) + ' (format.html)');
+      }
+    }
+  }
+  add(documentMeta[section], 'document metadata');
+  return found;
 }
 // Every key of a section at any level or in the merged metadata, with where it was set.
 function keysOf(section: string) {
@@ -260,20 +302,15 @@ function feedbackSettings() {
   return out;
 }
 
-// ai-feedback: enabled (P22) is AND over every level and the merged metadata:
+// ai-feedback: enabled (P22) is AND over every level (with its format scope
+// and metadata-files: switchValues) and the merged metadata:
 // any level can turn AI feedback off for the build, none can turn it back on.
 // origin names the first level that turned it off. asked names the page's own
 // front matter when it says enabled: true: only that is a request of the page
 // (a project-wide enabled: true is the normal configuration, not a request of
 // every page), reported in the page's build message whichever switch is off.
 function feedbackSwitch(out: Record<string, Entry>) {
-  const found: (Entry & {page: boolean})[] = [];
-  for (const level of levels) {
-    const values = level.sections['ai-feedback'];
-    if (values && Object.hasOwn(values, 'enabled')) found.push({value: values.enabled, origin: level.origin, page: level.page});
-  }
-  const meta = documentMeta['ai-feedback'];
-  if (meta && Object.hasOwn(meta, 'enabled')) found.push({value: meta.enabled, origin: 'document metadata', page: false});
+  const found = switchValues('ai-feedback', 'enabled');
   let off: string | undefined, asked: string | undefined, last: string | undefined;
   for (const {value, origin, page} of found) {
     const on = value === true || value === 'true' ? true : value === false || value === 'false' ? false : null;
@@ -432,18 +469,13 @@ function sectionSettings(section: string) {
   return out;
 }
 
-// ctm-assessment: exam is OR over every level and the merged metadata: any
+// ctm-assessment: exam is OR over every level (with its format scope
+// and metadata-files: switchValues) and the merged metadata: any
 // level (a profile, say) makes the build an exam build, none makes it an
 // ordinary one again. origin names the first level that set it. An exam build
 // has no AI feedback (lua/feedback.lua) and needs local assets.
 function examSwitch(out: Record<string, Entry>) {
-  const found: Entry[] = [];
-  for (const level of levels) {
-    const values = level.sections['ctm-assessment'];
-    if (values && Object.hasOwn(values, 'exam')) found.push({value: values.exam, origin: level.origin});
-  }
-  const meta = documentMeta['ctm-assessment'];
-  if (meta && Object.hasOwn(meta, 'exam')) found.push({value: meta.exam, origin: 'document metadata'});
+  const found = switchValues('ctm-assessment', 'exam');
   let on: string | undefined, last: string | undefined;
   for (const {value, origin} of found) {
     const exam = value === true || value === 'true' ? true : value === false || value === 'false' ? false : null;
