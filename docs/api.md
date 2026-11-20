@@ -51,7 +51,8 @@ The bootstrap
 `settings.bool`'s `digits`, the `pyodide-interaktiv` catalogue).
 
 Every filter of a page gets the same instance (`_G.__ctmLibs`); a page that
-would combine two installations of different versions stops. The instance
+would combine two installations of different versions or files stops (a
+digest of every file but dotfiles, with CRLF read as LF). The instance
 has `ctm.dir`, `ctm.version`, `ctm.api`, `ctm.path(...)` (absolute path of a
 file of the installation) and `ctm.filters()` (the passes of the
 `ctm-libs` filter: Meta, Callout, the page's interface (`ctm.ui`, two

@@ -24,22 +24,35 @@ local function manifestVersion(folder)
   return found
 end
 
--- The identity of an installation's code: sha1 over its lua/ files (names
--- and bytes, sorted). Two installations of one version can still differ
--- (B1 of the 30 Oct audit: an edited or older copy under the same version).
+-- The identity of an installation's code: sha1 over every regular file of
+-- it (relative paths and bytes, sorted by path; CRLF read as LF), in every
+-- folder, without dotfiles (.DS_Store) and dot folders. Two installations of
+-- one version can still differ (B1 of the 30 Oct audit: an edited or older
+-- copy under the same version), also outside lua/ (feedback/, runtime/, ui/,
+-- locales/, read-settings.ts). Computed only when two installations meet.
 local function codeDigest(folder)
-  local root = pandoc.path.join({folder, "lua"})
-  local ok, names = pcall(pandoc.system.list_directory, root)
-  if not ok then return "unreadable" end
-  table.sort(names)
-  local parts = {}
-  for _, name in ipairs(names) do
-    local file = io.open(pandoc.path.join({root, name}), "rb")
-    if file then
-      parts[#parts + 1] = name .. "\0" .. file:read("*a")
-      file:close()
+  local files = {}
+  -- false when `relative` is no folder (list_directory fails on a file).
+  local function walk(relative)
+    local ok, names = pcall(pandoc.system.list_directory, relative == "" and folder or pandoc.path.join({folder, relative}))
+    if not ok then return false end
+    for _, name in ipairs(names) do
+      if name:sub(1, 1) ~= "." then
+        local path = relative == "" and name or (relative .. "/" .. name)
+        if not walk(path) then
+          local file = io.open(pandoc.path.join({folder, path}), "rb")
+          local bytes = file and file:read("a")
+          if file then file:close() end
+          if bytes then files[#files + 1] = {path = path, bytes = (bytes:gsub("\r\n", "\n"))} end
+        end
+      end
     end
+    return true
   end
+  if not walk("") then return "unreadable" end
+  table.sort(files, function(a, b) return a.path < b.path end)
+  local parts = {}
+  for _, file in ipairs(files) do parts[#parts + 1] = file.path .. "\0" .. file.bytes end
   return pandoc.utils.sha1(table.concat(parts, "\0"))
 end
 

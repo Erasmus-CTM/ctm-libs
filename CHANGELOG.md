@@ -4,8 +4,11 @@
 
 - Two ctm-libs installations on one page stop it also when they carry the
   same version with different files (B1 of the 30 Oct audit): the guard
-  compares a digest of each installation's `lua/` files, not only the
-  version, because the version alone stayed 0.9.0 across many changes.
+  compares a digest of each installation's files, not only the version,
+  because the version alone stayed 0.9.0 across many changes. The digest
+  covers every file (`feedback/`, `runtime/`, `ui/`, `locales/`,
+  `read-settings.ts` too), skips dotfiles such as `.DS_Store`, and reads CRLF
+  as LF; a folder inside `lua/` no longer crashes the render.
 - CI tests against ctm-checkers 4cff6aa, the commit the CTM Assessment package
   ships (H3); it used 57823df.
 - `ctm-assessment: exam: true` makes an exam build: AI feedback and
