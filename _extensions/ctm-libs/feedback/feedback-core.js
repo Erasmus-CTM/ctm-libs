@@ -361,11 +361,16 @@
       // [DONE] ends the stream (nothing after it is read). A finish_reason
       // marks the reply complete, but reading goes on, within the same
       // bounds, to [DONE] or the end of the stream: providers may send more
-      // content after it. A stream that closes before either is incomplete;
-      // a `length` finish stays one (TRUNCATED).
+      // content after it. Silence after a finish_reason (no more content for
+      // graceMs, by default 2 s or the idle limit if shorter) ends the stream
+      // as a success: the reply is complete, and a provider that keeps the
+      // connection open must not turn it into a timeout. A stream that closes
+      // before either is incomplete; a `length` finish stays one (TRUNCATED).
       async function readStream(response, sent) {
         const reader = response.body.getReader(), decoder = new TextDecoder();
-        let buffer = '', content = '', finish = null, ended = false;
+        let buffer = '', content = '', finish = null, ended = false, grace = null, settle;
+        const settled = new Promise(resolve => { settle = resolve; });
+        const graceMs = Math.min(limits.graceMs ?? 2000, limits.idleMs);
         const take = line => {
           if (line.length > limits.maxLine) throw tooLong(limits.maxLine);
           line = line.trim();
@@ -384,6 +389,11 @@
           if ([delta.reasoning_content, delta.reasoning].some(part => typeof part === 'string' && part)) progress = true;
           if (choice?.finish_reason) { if (finish !== 'length') finish = choice.finish_reason; progress = true; }
           if (progress) arm(limits.idleMs, 'idle');
+          if (progress && finish) {
+            // Complete: wait graceMs for more content instead of the idle limit.
+            clearTimeout(timer); clearTimeout(grace);
+            grace = setTimeout(() => settle({ done: true, grace: true }), graceMs);
+          }
         };
         // A body that ignores the abort must not keep the request waiting.
         const stopped = new Promise((resolve, reject) => {
@@ -395,7 +405,8 @@
         deadline = setTimeout(() => { timedOut = 'deadline'; controller.abort(); }, Math.max(0, limits.deadlineMs - (Date.now() - sent)));
         try {
           while (!ended) {
-            const { value, done } = await Promise.race([reader.read(), stopped]);
+            const { value, done, grace: quiet } = await Promise.race([reader.read(), stopped, settled]);
+            if (quiet) break;
             if (done) { take(buffer + decoder.decode()); break; }
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n');
@@ -404,7 +415,7 @@
             if (buffer.length > limits.maxLine) throw tooLong(limits.maxLine);
           }
         } finally {
-          clearTimeout(deadline);
+          clearTimeout(deadline); clearTimeout(grace);
           Promise.resolve().then(() => reader.cancel?.()).catch(() => {});
         }
         if (!ended && !finish) throw new FeedbackError('STREAM_INCOMPLETE', 'The provider’s reply broke off before it was complete.');

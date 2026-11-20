@@ -42,8 +42,17 @@ test('a finish_reason marks completion, but reading goes on to [DONE] or the end
  // The bounds still hold after a finish_reason.
  const long=stream(i=>i?delta('y'.repeat(40000)):delta('A','stop'));
  await assert.rejects(generate(long.client()),e=>e.code==='OUTPUT_LIMIT');assert.equal(long.log.cancelled,true);
+ // Silence or keep-alives after a finish_reason end the stream as a success
+ // after the grace period, not as an idle timeout (internal audit of 20 Nov).
  const idle=stream(i=>i?later(5,': keep-alive\n\n'):delta('A','stop'));
- await assert.rejects(generate(idle.client({idleMs:60})),e=>e.code==='TIMEOUT');assert.equal(idle.log.cancelled,true);
+ assert.equal((await generate(idle.client({idleMs:60}))).text,'A');assert.equal(idle.log.cancelled,true);
+ const silent=stream(i=>i?new Promise(()=>{}):delta('A','stop'));
+ const quiet=Date.now();
+ assert.equal((await generate(silent.client({idleMs:5000,graceMs:50}))).text,'A');
+ assert.ok(Date.now()-quiet<2000,'the grace period, not the idle limit, ends it');
+ // Content within the grace period is still read.
+ const late=stream(chunks([delta('A','stop'),later(10,delta('B')),null]));
+ assert.equal((await generate(late.client({graceMs:200}))).text,'AB');
  // A `length` finish stays a truncation, also when a later chunk says stop.
  for(const list of [[delta('A','length'),'data: [DONE]\n\n'],[delta('A','length'),delta('B','stop'),null]]){
   await assert.rejects(generate(stream(chunks(list)).client()),e=>e.code==='TRUNCATED');

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- A streamed reply that is complete (a `finish_reason`) and then goes quiet
+  ends as a success after a short grace period (2 s), instead of an idle
+  timeout: a provider that keeps the connection open after finishing no longer
+  turns a finished answer into an error (internal audit of 20 Nov).
 - Two ctm-libs installations on one page stop it also when they carry the
   same version with different files (B1 of the 30 Oct audit): the guard
   compares a digest of each installation's files, not only the version,

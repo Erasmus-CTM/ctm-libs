@@ -782,12 +782,13 @@ Calls with a budget over 60 seconds stream (`stream: true`, OpenAI-compatible
 server-sent events). `[DONE]` ends the stream; nothing after it is read.
 A `finish_reason` marks the reply complete, but reading goes on, within the
 same bounds, to `[DONE]` or the end of the stream (`length` stays
-`TRUNCATED`). One that closes before either is `STREAM_INCOMPLETE`, never a
+`TRUNCATED`); after it, no new content for `graceMs` (2 s, or the idle limit
+if shorter) ends the stream as a success. One that closes before either is `STREAM_INCOMPLETE`, never a
 shortened success. An event line over 1 MiB of
 characters, or answer text over 100,000, is `OUTPUT_LIMIT`. Content and
 reasoning deltas are progress; keep-alive comments and malformed events are
 not. After the budget without progress, or twice the budget in all, the call
-ends with `TIMEOUT`. `replyLimits: {maxText, maxLine, idleMs, deadlineMs}`
+ends with `TIMEOUT`. `replyLimits: {maxText, maxLine, idleMs, deadlineMs, graceMs}`
 (per call, or in `createClient`'s dependencies) changes these bounds. Each
 limit cancels the reader.
 
