@@ -358,8 +358,11 @@
       // about a minute without CORS headers, which the browser reports as a
       // network failure. Streamed chunks keep the connection busy; content,
       // reasoning and the finish renew the idle limit, within the deadline.
-      // The stream ends at the first finish_reason or [DONE] (the rest is not
-      // read); one that closes before either is incomplete.
+      // [DONE] ends the stream (nothing after it is read). A finish_reason
+      // marks the reply complete, but reading goes on, within the same
+      // bounds, to [DONE] or the end of the stream: providers may send more
+      // content after it. A stream that closes before either is incomplete;
+      // a `length` finish stays one (TRUNCATED).
       async function readStream(response, sent) {
         const reader = response.body.getReader(), decoder = new TextDecoder();
         let buffer = '', content = '', finish = null, ended = false;
@@ -379,7 +382,7 @@
             content += delta.content; progress = true;
           }
           if ([delta.reasoning_content, delta.reasoning].some(part => typeof part === 'string' && part)) progress = true;
-          if (choice?.finish_reason) { finish = choice.finish_reason; ended = true; }
+          if (choice?.finish_reason) { if (finish !== 'length') finish = choice.finish_reason; progress = true; }
           if (progress) arm(limits.idleMs, 'idle');
         };
         // A body that ignores the abort must not keep the request waiting.
@@ -404,7 +407,7 @@
           clearTimeout(deadline);
           Promise.resolve().then(() => reader.cancel?.()).catch(() => {});
         }
-        if (!ended) throw new FeedbackError('STREAM_INCOMPLETE', 'The provider’s reply broke off before it was complete.');
+        if (!ended && !finish) throw new FeedbackError('STREAM_INCOMPLETE', 'The provider’s reply broke off before it was complete.');
         return { choices: [{ message: { content }, finish_reason: finish }] };
       }
       async function once(correction) {

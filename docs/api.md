@@ -779,9 +779,11 @@ for an optional illustration. The default rejects unsupported image requests;
 activities relying on uploaded images must keep that default.
 
 Calls with a budget over 60 seconds stream (`stream: true`, OpenAI-compatible
-server-sent events). The stream ends at the first `finish_reason` or
-`[DONE]`; nothing after it is read. One that closes before either is
-`STREAM_INCOMPLETE`, never a shortened success. An event line over 1 MiB of
+server-sent events). `[DONE]` ends the stream; nothing after it is read.
+A `finish_reason` marks the reply complete, but reading goes on, within the
+same bounds, to `[DONE]` or the end of the stream (`length` stays
+`TRUNCATED`). One that closes before either is `STREAM_INCOMPLETE`, never a
+shortened success. An event line over 1 MiB of
 characters, or answer text over 100,000, is `OUTPUT_LIMIT`. Content and
 reasoning deltas are progress; keep-alive comments and malformed events are
 not. After the budget without progress, or twice the budget in all, the call

@@ -1,6 +1,7 @@
 // Bounds and the end of a streamed reply (P01, P02): the size of the answer
 // and of one event line, the idle limit and the deadline, the terminal
-// [DONE]/finish_reason and a stream that closes before either.
+// [DONE], a finish_reason (complete, but read on) and a stream that closes
+// before either.
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const {JSDOM}=require('jsdom');
@@ -31,11 +32,22 @@ test('a stream ends at [DONE]: later data is neither read nor appended',async()=
  const next=stream(chunks([delta('A'),'data: [DONE]\n\n',delta('EXTRA')]));
  assert.equal((await generate(next.client())).text,'A');assert.equal(next.log.reads,2);assert.equal(next.log.cancelled,true);
 });
-test('a finish_reason ends the stream; a provider that then closes without [DONE] succeeds',async()=>{
+test('a finish_reason marks completion, but reading goes on to [DONE] or the end of the stream',async()=>{
+ // Content after a finish_reason is kept (P01 of the 19 Nov audit: the first finish_reason cut it off).
+ const more=stream(chunks([delta('A','stop'),delta('B'),delta('C','stop'),'data: [DONE]\n\n',delta('EXTRA AFTER DONE')]));
+ assert.equal((await generate(more.client())).text,'ABC');assert.equal(more.log.reads,4);assert.equal(more.log.cancelled,true);
+ // A provider that closes without [DONE] after a finish_reason succeeds.
  const closed=stream(chunks([delta('A'),delta('B','stop'),null]));
  assert.equal((await generate(closed.client())).text,'AB');
- const keepsOpen=stream(chunks([delta('A','stop'),delta('EXTRA')]));
- assert.equal((await generate(keepsOpen.client())).text,'A');assert.equal(keepsOpen.log.reads,1);
+ // The bounds still hold after a finish_reason.
+ const long=stream(i=>i?delta('y'.repeat(40000)):delta('A','stop'));
+ await assert.rejects(generate(long.client()),e=>e.code==='OUTPUT_LIMIT');assert.equal(long.log.cancelled,true);
+ const idle=stream(i=>i?later(5,': keep-alive\n\n'):delta('A','stop'));
+ await assert.rejects(generate(idle.client({idleMs:60})),e=>e.code==='TIMEOUT');assert.equal(idle.log.cancelled,true);
+ // A `length` finish stays a truncation, also when a later chunk says stop.
+ for(const list of [[delta('A','length'),'data: [DONE]\n\n'],[delta('A','length'),delta('B','stop'),null]]){
+  await assert.rejects(generate(stream(chunks(list)).client()),e=>e.code==='TRUNCATED');
+ }
 });
 test('a stream that closes before [DONE] or a finish_reason is incomplete, not a short success',async()=>{
  const cut=stream(chunks([delta('{"question":'),delta('"Q"')]));
@@ -71,7 +83,7 @@ test('keep-alive comments and malformed events are no progress: the idle limit e
  await assert.rejects(generate(pings.client({idleMs:60})),e=>e.code==='TIMEOUT'&&/sent nothing new/.test(e.message));
  assert.ok(Date.now()-started<1000);assert.ok(pings.log.reads>3);assert.equal(pings.log.cancelled,true);
  // Content and reasoning deltas are progress and renew the idle limit.
- const steady=stream(i=>i<20?later(10,i%2?delta('a'):data({choices:[{delta:{reasoning_content:'thinking'}}]})):delta('','stop'));
+ const steady=stream(i=>i<20?later(10,i%2?delta('a'):data({choices:[{delta:{reasoning_content:'thinking'}}]})):i===20?delta('','stop'):null);
  assert.equal((await generate(steady.client({idleMs:60}))).text,'a'.repeat(10));
 });
 test('the deadline ends a stream that keeps making progress',async()=>{

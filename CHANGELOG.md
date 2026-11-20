@@ -28,10 +28,12 @@
   ctm-assessment]`, where ctm-stack converts the blocks before ctm-libs' pass
   or the pass never runs (X-2). The jsxgraph filter does not use ctm-libs:
   its stop still needs ctm-libs' pass to run first.
-- Streamed replies (generation, solving) are bounded. A stream ends at the
-  first `finish_reason` or `[DONE]`, without reading or appending what follows;
-  one that closes before either fails as `STREAM_INCOMPLETE` instead of showing
-  a clipped reply as complete. Answer text over 100,000 characters (streamed or
+- Streamed replies (generation, solving) are bounded. A stream ends at
+  `[DONE]`, without reading or appending what follows. A `finish_reason`
+  marks the reply complete, but reading goes on to `[DONE]` or the end of the
+  stream, so content after it is kept (P01: the first `finish_reason` had cut
+  `[A,stop][B][C,stop]` to "A"). One that closes before either fails as
+  `STREAM_INCOMPLETE` instead of showing a clipped reply as complete. Answer text over 100,000 characters (streamed or
   not) and an event line over 1 MiB fail as `OUTPUT_LIMIT` before they are
   kept. Only content, reasoning and the finish renew the time budget, so
   keep-alive comments no longer hold a request open; every stream also ends
