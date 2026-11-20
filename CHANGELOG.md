@@ -17,6 +17,11 @@
 - A local build of a page with STACK questions (`.stack-question` blocks) stops
   and names the page: they need the online build, because Maxima and SymPy are
   not in the offline bundle. The JSXGraph-board stop names the page too.
+  The STACK stop is in `ctm.checkers.use("stack")`, which every STACK card
+  calls, so it also holds with `filters: [ctm-stack]` or `[ctm-stack,
+  ctm-assessment]`, where ctm-stack converts the blocks before ctm-libs' pass
+  or the pass never runs (X-2). The jsxgraph filter does not use ctm-libs:
+  its stop still needs ctm-libs' pass to run first.
 - Streamed replies (generation, solving) are bounded. A stream ends at the
   first `finish_reason` or `[DONE]`, without reading or appending what follows;
   one that closes before either fails as `STREAM_INCOMPLETE` instead of showing

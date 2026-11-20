@@ -200,6 +200,9 @@ message names `ctm-assessment: exam: true` and its file). An exam build needs
 it is an exam build. A page with JSXGraph boards or STACK questions stops a
 local build, exam or not: boards cannot load the local MathJax yet, and STACK
 questions need Maxima or SymPy, which the offline bundle does not contain.
+The STACK stop holds in any filter order (ctm-stack's cards stop it); the
+JSXGraph stop needs ctm-libs' pass to see the boards before the jsxgraph
+filter converts them, as `filters: [ctm-assessment]` does.
 Without `exam`, a local build with AI feedback on warns that AI feedback needs
 an internet connection.
 

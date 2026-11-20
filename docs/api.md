@@ -204,6 +204,7 @@ ctm.assets.mode()                        -- "cdn" or "local"
 ctm.assets.url("katex", "dist/katex.mjs")  -- CDN URL, or <page offset>/_ctm-assets/...
 ctm.assets.url("pyodide")                 -- selected base URL, with a trailing slash
 ctm.assets.use()                         -- CTM_ASSETS and the CTMAssets browser resolver
+ctm.assets.requireOnline("stack")        -- stops a local build: "stack" (STACK questions), "jsxgraph" (boards)
 ```
 
 Names and npm versions come from this installation's `assets.json`.
@@ -261,7 +262,8 @@ ctm.checkers.require("math-exercise", 1)  -- once per page: stops the render whe
                                           -- returns checkers.json. Compatible: the same major level and at
                                           -- least the required minor level (1, "1.2").
 ctm.checkers.use([part])                  -- HTML dependency ctm-checkers (ctm-checkers.js, head); with part "stack"
-                                          -- also ctm-checkers-stack (ctm-checkers-stack.js, after it)
+                                          -- also ctm-checkers-stack (ctm-checkers-stack.js, after it), and a
+                                          -- local build stops (ctm.assets.requireOnline), whatever the filter order
 ctm.checkers.manifest()                   -- checkers.json: name, version, api, dependency, wheel, sha256, script,
                                           -- parts (ctm-checkers 0.2: parts.stack, the STACK engine)
 ctm.checkers.wheel([part])                -- absolute path of the wheel, or of the part's wheel

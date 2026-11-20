@@ -118,6 +118,38 @@ test('local preflight rejects missing bundle, wrong versions, missing resources/
   } finally {fs.rmSync(p.dir,{recursive:true,force:true});}
 });
 
+// X-2: ctm-stack may run before ctm-libs' passes (filters: [ctm-stack,
+// ctm-assessment]) or without them (filters: [ctm-stack]); its cards then
+// reach the page without a `.stack-question` block for check(doc) to see.
+// The stop is in ctm.checkers.use("stack"), which every card's setup calls.
+test('a local build stops at a STACK card whatever the order of the filters', {skip: !C.hasQuarto}, () => {
+  const card = C.probe('card', 'ctm.checkers.use("stack")\nreturn true');
+  const checkers = {
+    '_extensions/ctm-checkers/_extension.yml': 'title: CTM checkers\nauthor: CTM team\nversion: 0.2.0\ncontributes:\n  metadata:\n    ctm-checkers:\n      api: "1.1"\n',
+    '_extensions/ctm-checkers/checkers.json': JSON.stringify({name: 'ctm-checkers', version: '0.2.0', api: '1.1', dependency: '0.2.0',
+      wheel: 'w.whl', script: 'ctm-checkers.js', parts: {stack: {wheel: 's.whl', script: 'ctm-checkers-stack.js', dependency: '0.2.0'}}}),
+    '_extensions/ctm-checkers/ctm-checkers.js': '', '_extensions/ctm-checkers/ctm-checkers-stack.js': ''};
+  for (const local of [false, true]) {
+    for (const filters of ['ctm-libs, probe', 'probe, ctm-libs', 'probe']) {
+      const p = project(local ? {body: card} : {local: false, manifest: false, resources: false, theme: false, body: card});
+      try {
+        C.write(p.dir, checkers);
+        const file = path.join(p.dir, '_quarto.yml');
+        fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('filters: [ctm-libs, probe]', 'filters: [' + filters + ']'));
+        const r = render(p.dir);
+        if (!local) {
+          assert.equal(r.status, 0, filters + ': ' + r.stderr);
+          assert.match(C.html(p.dir, p.file), /ctm-checkers-stack\.js/, filters);
+          continue;
+        }
+        assert.notEqual(r.status, 0, filters);
+        assert.match(r.stderr, /do not support STACK questions \(`\.stack-question` blocks, page\.qmd\): they need the online build/, filters);
+        assert.ok(!fs.existsSync(path.join(p.dir, 'page.html')), filters);
+      } finally {fs.rmSync(p.dir, {recursive: true, force: true});}
+    }
+  }
+});
+
 test('local worker receives an absolute page URL and loads only subset packages without micropip', async () => {
   const W = require('./helpers/worker.cjs');
   const page = W.pageContext();

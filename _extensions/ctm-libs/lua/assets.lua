@@ -140,18 +140,30 @@ return function(ctm)
   -- of publishing boards without their math. STACK questions grade with
   -- Maxima or SymPy, which the offline bundle does not contain: a local
   -- build of a page with STACK questions stops likewise.
+  local ONLINE = {
+    jsxgraph = function()
+      return "ctm-assessment: local assets do not support JSXGraph boards yet (`.jsxgraph` blocks, "
+        .. ctm.source.pageName() .. "): a board cannot load the local MathJax. Build this page with CDN assets, or remove its boards."
+    end,
+    stack = function()
+      return "ctm-assessment: local assets do not support STACK questions (`.stack-question` blocks, "
+        .. ctm.source.pageName() .. "): they need the online build, because Maxima and SymPy are not in the offline bundle. "
+        .. "Build this page with CDN assets, or remove its STACK questions."
+    end,
+  }
+  -- Stops a local build of a page that uses `feature` ("jsxgraph", "stack").
+  -- check(doc) calls it for the page's source in ctm-libs' own pass;
+  -- ctm.checkers.use("stack") calls it when ctm-stack renders a card, which
+  -- may happen before that pass, or on a page without it.
+  function M.requireOnline(feature)
+    if not quarto.doc.is_format("html") or M.mode() ~= "local" then return end
+    ctm.fail(ONLINE[feature]())
+  end
   function M.check(doc)
     if not quarto.doc.is_format("html") or M.mode() ~= "local" then return end
     local used = ctm.deps.uses(doc)
-    if used.jsxgraph then
-      ctm.fail("ctm-assessment: local assets do not support JSXGraph boards yet (`.jsxgraph` blocks, "
-        .. ctm.source.pageName() .. "): a board cannot load the local MathJax. Build this page with CDN assets, or remove its boards.")
-    end
-    if used.stack then
-      ctm.fail("ctm-assessment: local assets do not support STACK questions (`.stack-question` blocks, "
-        .. ctm.source.pageName() .. "): they need the online build, because Maxima and SymPy are not in the offline bundle. "
-        .. "Build this page with CDN assets, or remove its STACK questions.")
-    end
+    if used.jsxgraph then M.requireOnline("jsxgraph") end
+    if used.stack then M.requireOnline("stack") end
   end
   function M.prepare(meta)
     if not quarto.doc.is_format("html") then return meta end

@@ -126,7 +126,10 @@ return function(ctm)
   -- dependency "ctm-checkers-<part>" (version: its `dependency`); a page with
   -- math-exercise alone never carries it (ctm-checkers 0.2: the STACK engine
   -- has its own wheel and script).
+  -- A local build stops at part "stack" (ctm.assets.requireOnline), whatever
+  -- the order of the page's filters.
   function M.use(part)
+    if part == "stack" then ctm.assets.requireOnline("stack") end
     local folder, manifest = installation()
     ctm.deps.html({name = NAME, version = tostring(manifest.dependency or manifest.version),
       scripts = {pandoc.path.join({folder, manifest.script})}})
