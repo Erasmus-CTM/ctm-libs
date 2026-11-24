@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Fixed: package loading no longer writes its progress ("Loading sympy",
+  "Loaded mpmath, sympy", "No new packages to load") into a cell's output or
+  a checker's evidence. Since Pyodide 0.27.7 (#5621), `loadPackage` prints
+  it to the `stdout` given to `loadPyodide`; the worker now passes a silent
+  `messageCallback` unless the caller gives its own. Errors still reach
+  stderr.
 - Image feedback activities can opt into one correction exchange with
   `corrections="true"`. A short clarification is checked against the original
   image and preceding feedback; the replacement restarts at hint 1. Later hints

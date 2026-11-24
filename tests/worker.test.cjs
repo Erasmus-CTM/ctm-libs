@@ -40,6 +40,36 @@ test('the worker serializes other consumers around a plugin command\'s output ca
   assert.equal(w.result(6).message, 'Unknown command: noSuchCommand');
 });
 
+test('package loading progress stays out of a cell\'s output; a caller\'s own messageCallback still gets it', async () => {
+  // Pyodide 0.27.7+ (#5621) prints loadPackage's progress to loadPyodide's
+  // stdout when no messageCallback is given; the fake does the same.
+  const own = [];
+  const plugin = 'registerPlugin(api => ({commands: {runCell: async msg => {'
+    + ' api.capture.start(); await api.pyodide().loadPackagesFromImports(msg.code); await api.pyodide().loadPackage("sympy");'
+    + ' await api.pyodide().loadPackage("mpmath", {messageCallback: self._test_own}); await api.pyodide().runPythonAsync(msg.code);'
+    + ' return {entries: api.capture.entries()}; }}}));';
+  const w = W.workerContext({plugin, pyodide: ctx => {
+    const progress = (names, options) => {
+      const report = (options && options.messageCallback) || ctx.stdout;
+      report('Loading ' + [].concat(names).join(', ')); report('Loaded ' + [].concat(names).join(', '));
+    };
+    return {
+      loadPackagesFromImports: async (code, options) => progress('sympy', options),
+      loadPackage: async (names, options) => progress(names, options),
+      runPythonAsync: async code => { ctx.stdout(code); },
+    };
+  }});
+  w.context.self._test_own = text => own.push(text);
+  await w.init();
+  await w.send({id: 1, type: 'runCell', code: 'LEARNER_OUTPUT'});
+  assert.deepEqual(w.result(1).value.entries, [{type: 'stdout', message: 'LEARNER_OUTPUT'}]);
+  assert.deepEqual(own, ['Loading mpmath', 'Loaded mpmath']);
+  await w.send({id: 2, type: 'loadPackage', name: 'networkx'});
+  await w.send({id: 3, type: 'loadPackagesFromImports', code: 'import sympy'});
+  const text = JSON.stringify(w.messages.filter(m => m.type !== 'status'));
+  assert.ok(!/Loading|Loaded/.test(text), 'no progress text reaches the page: ' + text.slice(0, 400));
+});
+
 test('a plugin\'s stage-1 Python runs once the interpreter is ready; setPrompt reaches input()\'s request', async () => {
   const ran = [];
   const plugin = 'registerPlugin(api => { self._test_set_prompt = api.setPrompt; return {stage1: "HOOK"}; });';

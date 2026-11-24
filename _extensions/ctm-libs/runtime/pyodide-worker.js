@@ -241,6 +241,22 @@ function confineMicropip() {
 }
 
 let config = null;
+// Since Pyodide 0.27.7 (#5621), loadPackage and loadPackagesFromImports
+// print their progress ("Loading sympy", "Loaded sympy", "No new packages to
+// load") to the stdout given to loadPyodide, so it would land in a cell's
+// output and in a checker's evidence. Progress is not program output: it is
+// dropped unless a caller passes its own messageCallback. Errors keep
+// Pyodide's default (stderr).
+function quietPackageLoading(py) {
+  for (const key of ["loadPackage", "loadPackagesFromImports"]) {
+    const original = py[key];
+    if (typeof original !== "function") continue;
+    py[key] = function(arg, options) {
+      return original.call(py, arg, Object.assign({ messageCallback: function() {} }, options));
+    };
+  }
+}
+
 async function init(cfg) {
   config = cfg;
   for (const url of config.pluginURLs || []) {
@@ -274,6 +290,7 @@ async function init(cfg) {
       emitOutput(text, 'stderr');
     }
   });
+  quietPackageLoading(pyodide);
   // The stop probe (see interruptBuffer); an isolated page adds its shared
   // buffer through setInterrupt.
   pyodide.setInterruptBuffer(interruptBuffer);
