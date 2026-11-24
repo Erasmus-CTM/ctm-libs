@@ -169,8 +169,10 @@ details.ctm-reveal.details[open] > summary::before { transform: rotate(45deg); }
 .ctm-settings>section {padding-top:1rem;margin-top:1rem;border-top:1px solid var(--ctm-modes-border);}
 .ctm-settings h3 {font-size:1.05rem;}
 .ctm-settings .ctm-save-bar {margin:0;padding:0;border:0;background:none;}
-.ctm-settings .ctm-save-actions {flex-direction:column;align-items:flex-start;}
-.ctm-settings [data-ctm-export] {margin-bottom:.75rem;}
+.ctm-settings .ctm-save-actions {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;}
+.ctm-settings .ctm-save-actions button {width:100%;}
+@media (max-width:30rem) {.ctm-settings .ctm-save-actions {grid-template-columns:minmax(0,1fr);}}
+.ctm-settings-toolbar-mounted {margin:0;}
 .ctm-settings [data-ctm-clear-page],.ctm-settings [data-ctm-clear-course] {border-color:var(--ctm-modes-border);background:none;color:inherit;}
 .ctm-settings .ai-feedback-settings {box-sizing:border-box;width:100%;max-height:none;padding:0;margin:0;border:0;border-radius:0;background:transparent;color:inherit;overflow:visible;}
 .ctm-settings .ai-feedback-settings-grid {grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr));}

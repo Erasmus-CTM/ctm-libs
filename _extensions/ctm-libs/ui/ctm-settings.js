@@ -2,8 +2,12 @@
 (function () {
   'use strict';
   if (window.CTMSettings) return;
-  let dialog, toolbar, opener;
+  let dialog, toolbar, gear, opener;
   const sections = new Map();
+  // Sections appear in this order whatever order the components register in:
+  // AI feedback first, then everything about saving answers. Unknown ids follow.
+  const ORDER = ['ai', 'answers', 'code'];
+  function rank(id) { const i = ORDER.indexOf(id); return i < 0 ? ORDER.length : i; }
   function text(key, fallback) {
     try {
       const manifest = JSON.parse(document.getElementById('ctm-store-manifest')?.textContent || '{}');
@@ -30,7 +34,7 @@
     });
     document.body.append(dialog);
     toolbar = document.createElement('div'); toolbar.className = 'ctm-settings-toolbar';
-    const gear = iconButton('⚙︎', text('settings', 'Settings'));
+    gear = iconButton('⚙︎', text('settings', 'Settings'));
     gear.setAttribute('aria-haspopup', 'dialog'); gear.setAttribute('aria-controls', dialog.id);
     gear.onclick = () => open(); toolbar.append(gear);
     const title = document.querySelector('#title-block-header');
@@ -41,7 +45,9 @@
     if (sections.has(id)) return sections.get(id);
     const section = document.createElement('section'); section.id = 'ctm-settings-' + id;
     const heading = document.createElement('h3'); heading.id = section.id + '-title'; heading.textContent = title;
-    section.setAttribute('aria-labelledby', heading.id); section.append(heading, content); dialog.append(section);
+    section.setAttribute('aria-labelledby', heading.id); section.append(heading, content);
+    const next = [...sections].find(([other]) => rank(other) > rank(id));
+    if (next) next[1].before(section); else dialog.append(section);
     sections.set(id, section); return section;
   }
   function open(id) {
@@ -53,5 +59,18 @@
     return dialog;
   }
   function summary(node) { ensure(); toolbar.prepend(node); }
-  window.CTMSettings = {register, open, summary, close: () => dialog?.close(), text};
+  // A component with its own page-level settings button (the Pyodide status row)
+  // hands it over here, so a page shows exactly one gear: the toolbar moves into
+  // `container`, the given button replaces the default gear and opens this dialog.
+  function mount(container, button) {
+    ensure();
+    if (button && button !== gear) {
+      button.setAttribute('aria-haspopup', 'dialog'); button.setAttribute('aria-controls', dialog.id);
+      button.onclick = () => open();
+      gear.replaceWith(button); gear = button;
+    }
+    if (container) { container.append(toolbar); toolbar.classList.add('ctm-settings-toolbar-mounted'); }
+    return toolbar;
+  }
+  window.CTMSettings = {register, open, summary, mount, close: () => dialog?.close(), text};
 })();

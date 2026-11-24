@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Settings: a page shows one gear. A component with its own page-level button
+  (the Pyodide status row) hands it to `CTMSettings.mount(container, button)`,
+  which moves the toolbar there instead of adding a second gear. Sections keep a
+  fixed order: AI feedback, answers & storage, then component sections. The four
+  storage buttons sit in a 2×2 grid (one column on narrow screens).
+- AI feedback settings: the API base URL field offers, through a ▾ at its edge,
+  providers students can use for free (OpenRouter, Cerebras, Google Gemini,
+  Mistral) and local servers (Ollama, LM Studio); all allow requests from a web
+  page. The field stays free text. An ⓘ next to it explains how to get a key for
+  the provider the URL belongs to, with a link. After "Fetch models" both model
+  fields offer the models through the same ▾ and narrow the list while typing;
+  free models come first when the provider reports prices. The two extra model
+  selects are gone, and a new fetch clears an earlier error.
 - Fixed: package loading no longer writes its progress ("Loading sympy",
   "Loaded mpmath, sympy", "No new packages to load") into a cell's output or
   a checker's evidence. Since Pyodide 0.27.7 (#5621), `loadPackage` prints
